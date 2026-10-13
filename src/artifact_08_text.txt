@@ -1,0 +1,14 @@
+1/3 🏆 Introducing the Panta x @NectarFi Competition Engine: The first 100% non-custodial, yield-bearing trading tournament protocol on @Solana. 
+
+Gone are the days of manual spreadsheets, multi-sig prize delays, and sybil wash-trading. Built for elite execution. 🧵👇
+
+2/3 ⚡ How it works:
+1️⃣ Real-time PnL & Volume streaming directly through @Panta DEX routing.
+2️⃣ Staked collateral auto-generates yield via @NectarFi dynamic vaults while the competition runs.
+3️⃣ Cryptographic Merkle-proof prize claiming + automated @resend receipts & Discord webhooks!
+
+3/3 🛡️ Zero admin custody. Zero idle capital. True decentralized execution on Solana. 
+
+Read our full open-source repo, test suite, and turnkey deployment runbook: https://github.com/panta-nectar-bounty/panta-nectar-competition 🚀
+
+#Solana #DeFi #AlgorithmicTrading #Web3

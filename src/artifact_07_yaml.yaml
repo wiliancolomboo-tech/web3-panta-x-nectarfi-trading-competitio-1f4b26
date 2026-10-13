@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  competition-keeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - PROGRAM_ID=PNTAnECTAR111111111111111111111111111111111
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - AUTHORITY_KEYPAIR_PATH=/secrets/authority.json
+    volumes:
+      - ./secrets:/secrets:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,41 @@
+flowchart TD
+    subgraph "Trader Ingress & Execution"
+        Trader["Trader / Market Maker"]
+        UI["Panta Competition Terminal"]
+        Trader -->|"1. Register & Stake Collateral"| UI
+        Trader -->|"2. Execute Swaps / Perps"| PantaRouter["Panta DEX Routing Engine"]
+    end
+
+    subgraph "Solana On-Chain Runtime (Anchor)"
+        CompProg["Panta x NectarFi Program"]
+        PrizeVault["Program Escrow Vault (SPL)"]
+        NectarVault["NectarFi Dynamic LP Vault"]
+        LeaderboardState["Competition Epoch PDA"]
+        UserScorePDA["User Performance PDA"]
+        
+        UI -->|"Register User"| CompProg
+        CompProg -->|"Deposit Stake"| PrizeVault
+        PrizeVault -->|"Stake Idle Liquidity"| NectarVault
+        PantaRouter -.->|"Emit Trade Execution Event"| CompProg
+        CompProg -->|"Update PnL / Volume Accrual"| UserScorePDA
+    end
+
+    subgraph "Enterprise Off-Chain Automation & Keeper Engine"
+        KeeperDaemon["Enterprise Keeper Worker (TypeScript)"]
+        SolanaRPC["Solana Geyser / Dedicated RPC"]
+        Ed25519Signer["Keeper Settlement Signer"]
+        
+        SolanaRPC -->|"Stream Events & Logs"| KeeperDaemon
+        KeeperDaemon -->|"Compute Anti-Wash Metrics"| KeeperDaemon
+        KeeperDaemon -->|"Sign Epoch Settlement State"| Ed25519Signer
+        Ed25519Signer -->|"Settle Epoch & Post Merkle Root"| CompProg
+    end
+
+    subgraph "Enterprise Telemetry & Notifications"
+        ResendAPI["Resend Email API"]
+        SlackWebhook["Slack / Discord Webhook Pipeline"]
+        
+        KeeperDaemon -->|"Leaderboard Shifts & Milestones"| SlackWebhook
+        KeeperDaemon -->|"Prize Distribution Receipts"| ResendAPI
+        CompProg -->|"Final Claim Event"| Trader
+    end
