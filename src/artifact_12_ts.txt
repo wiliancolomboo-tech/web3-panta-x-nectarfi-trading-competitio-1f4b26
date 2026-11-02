@@ -1,0 +1,51 @@
+import { Command } from "commander";
+import { HttpNectarFiAdapter } from "../../../packages/adapters/src/nectarfi.js";
+import {
+  aggregate,
+  commitment,
+  type Trade,
+} from "../../../packages/scoring/src/index.js";
+
+const program = new Command();
+
+program
+  .name("nectar-rank")
+  .command("compute")
+  .requiredOption("--from <unix>")
+  .requiredOption("--to <unix>")
+  .requiredOption("--epoch <number>")
+  .action(async options => {
+    const adapter = new HttpNectarFiAdapter(
+      process.env.NECTARFI_URL!,
+      process.env.NECTARFI_API_KEY!,
+    );
+
+    const source = await adapter.listTrades(
+      Number(options.from),
+      Number(options.to),
+    );
+
+    const trades: Trade[] = source.map(t => ({
+      eventId: t.id,
+      wallet: t.wallet,
+      notionalUsdMicros: BigInt(t.notionalUsdMicros),
+      realizedPnlUsdMicros: BigInt(t.realizedPnlUsdMicros),
+      timestamp: t.timestamp,
+    }));
+
+    const scores = aggregate(trades);
+    const root = commitment(scores, Number(options.epoch));
+
+    console.table(
+      scores.map(x => ({
+        wallet: x.wallet,
+        trades: x.tradeCount,
+        volume: x.volumeUsdMicros.toString(),
+        score: x.score.toString(),
+      })),
+    );
+
+    console.log(`scoreRoot=${root.toString("hex")}`);
+  });
+
+await program.parseAsync();

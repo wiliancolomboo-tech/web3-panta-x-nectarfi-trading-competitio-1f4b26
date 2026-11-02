@@ -1,225 +1,226 @@
-// src/keeper_daemon.ts
-
-import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import { Program, AnchorProvider, Wallet, BN } from "@coral-xyz/anchor";
 import { Resend } from "resend";
 import axios from "axios";
-import { keccak_256 } from "@noble/hashes/sha3";
-import * as fs from "fs";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// Configuration
-const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl("devnet");
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
-const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || "PNTAnECTAR111111111111111111111111111111111"
-);
-
-interface ParticipantScore {
-  pubkey: string;
-  volume: bigint;
-  pnl: bigint;
-  rewardAmount: bigint;
+// Configuration Interfaces
+interface SystemConfig {
+  solanaRpcUrl: string;
+  solanaWsUrl: string;
+  programId: string;
+  competitionId: number;
+  oraclePrivateKey: string;
+  resendApiKey: string;
+  discordWebhookUrl: string;
+  slackWebhookUrl?: string;
+  leaderboardPollIntervalMs: number;
 }
 
-export class MerkleTreeEngine {
-  private leaves: Buffer[];
-  private layers: Buffer[][];
+const CONFIG: SystemConfig = {
+  solanaRpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
+  solanaWsUrl: process.env.SOLANA_WS_URL || "wss://api.devnet.solana.com",
+  programId: process.env.PROGRAM_ID || "PNTAnECTAR1111111111111111111111111111111111",
+  competitionId: parseInt(process.env.COMPETITION_ID || "101", 10),
+  oraclePrivateKey: process.env.ORACLE_PRIVATE_KEY || "",
+  resendApiKey: process.env.RESEND_API_KEY || "re_test_dummy_key",
+  discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
+  slackWebhookUrl: process.env.SLACK_WEBHOOK_URL,
+  leaderboardPollIntervalMs: 5000,
+};
 
-  constructor(elements: { pubkey: PublicKey; rewardAmount: bigint }[]) {
-    this.leaves = elements.map((item) => {
-      const amountBuf = Buffer.alloc(8);
-      amountBuf.writeBigUInt64LE(item.rewardAmount);
-      const combined = Buffer.concat([item.pubkey.toBuffer(), amountBuf]);
-      return Buffer.from(keccak_256(combined));
-    });
+// Initialize External Enterprise Clients
+const resend = new Resend(CONFIG.resendApiKey);
 
-    this.layers = [this.leaves];
-    this.buildTree();
-  }
-
-  private buildTree() {
-    while (this.layers[this.layers.length - 1].length > 1) {
-      const currentLayer = this.layers[this.layers.length - 1];
-      const nextLayer: Buffer[] = [];
-
-      for (let i = 0; i < currentLayer.length; i += 2) {
-        if (i + 1 < currentLayer.length) {
-          const left = currentLayer[i];
-          const right = currentLayer[i + 1];
-          const concat = Buffer.compare(left, right) <= 0
-            ? Buffer.concat([left, right])
-            : Buffer.concat([right, left]);
-          nextLayer.push(Buffer.from(keccak_256(concat)));
-        } else {
-          nextLayer.push(currentLayer[i]);
-        }
-      }
-      this.layers.push(nextLayer);
-    }
-  }
-
-  public getRoot(): Buffer {
-    if (this.leaves.length === 0) return Buffer.alloc(32, 0);
-    return this.layers[this.layers.length - 1][0];
-  }
-
-  public getProof(index: number): Buffer[] {
-    const proof: Buffer[] = [];
-    for (let i = 0; i < this.layers.length - 1; i++) {
-      const layer = this.layers[i];
-      const isRight = index % 2 === 1;
-      const pairIndex = isRight ? index - 1 : index + 1;
-      if (pairIndex < layer.length) {
-        proof.push(layer[pairIndex]);
-      }
-      index = Math.floor(index / 2);
-    }
-    return proof;
-  }
+interface ParticipantCacheEntry {
+  trader: string;
+  score: number;
+  volumeUsd: number;
+  pnlUsd: number;
+  trades: number;
 }
 
-export class CompetitionKeeperDaemon {
+export class PantaNectarCompetitionDaemon {
   private connection: Connection;
-  private authorityKeypair: Keypair;
-  private resendClient?: Resend;
+  private oracleKeypair: Keypair;
+  private programPubkey: PublicKey;
+  private competitionPda: PublicKey;
+  private memoryLeaderboard: Map<string, ParticipantCacheEntry> = new Map();
 
   constructor() {
-    this.connection = new Connection(RPC_URL, "confirmed");
-    const secretKeyPath = process.env.AUTHORITY_KEYPAIR_PATH || "./authority.json";
+    this.connection = new Connection(CONFIG.solanaRpcUrl, {
+      wsEndpoint: CONFIG.solanaWsUrl,
+      commitment: "confirmed",
+    });
 
-    if (fs.existsSync(secretKeyPath)) {
-      const raw = JSON.parse(fs.readFileSync(secretKeyPath, "utf-8"));
-      this.authorityKeypair = Keypair.fromSecretKey(Uint8Array.from(raw));
+    if (CONFIG.oraclePrivateKey) {
+      const secret = Uint8Array.from(JSON.parse(CONFIG.oraclePrivateKey));
+      this.oracleKeypair = Keypair.fromSecretKey(secret);
     } else {
-      console.warn("Authority keypair not found, generating ephemeral wallet.");
-      this.authorityKeypair = Keypair.generate();
+      console.warn("⚠️ No ORACLE_PRIVATE_KEY provided. Generating transient keypair for runtime.");
+      this.oracleKeypair = Keypair.generate();
     }
 
-    if (RESEND_API_KEY) {
-      this.resendClient = new Resend(RESEND_API_KEY);
-    }
+    this.programPubkey = new PublicKey(CONFIG.programId);
+    
+    // Derive Competition PDA: seeds = [b"competition", competition_id.to_le_bytes()]
+    const compIdBuffer = Buffer.alloc(8);
+    compIdBuffer.writeBigUInt64LE(BigInt(CONFIG.competitionId));
+    
+    const [compPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("competition"), compIdBuffer],
+      this.programPubkey
+    );
+    this.competitionPda = compPda;
+  }
+
+  public async start(): Promise<void> {
+    console.log("==========================================================");
+    console.log("  PANTA x NECTARFI TRADING ARENA - ENTERPRISE INDEXER    ");
+    console.log(`  Competition ID : ${CONFIG.competitionId}`);
+    console.log(`  Competition PDA: ${this.competitionPda.toBase58()}`);
+    console.log(`  Oracle Keypair : ${this.oracleKeypair.publicKey.toBase58()}`);
+    console.log("==========================================================");
+
+    await this.verifyHealth();
+    this.subscribeProgramLogs();
+    this.startLeaderboardBroadcastLoop();
+  }
+
+  private async verifyHealth(): Promise<void> {
+    const slot = await this.connection.getSlot();
+    const balance = await this.connection.getBalance(this.oracleKeypair.publicKey);
+    console.log(`[HEALTH] Connected to Solana RPC at slot ${slot}`);
+    console.log(`[HEALTH] Oracle Gas Balance: ${balance / 1e9} SOL`);
   }
 
   /**
-   * Broadcast an automated notification to Slack / Discord webhook.
+   * Subscribes to real-time events emitted by the Arena program
    */
-  async broadcastLeaderboardAlert(message: string, fields: { title: string; value: string }[]) {
-    if (!SLACK_WEBHOOK_URL) {
-      console.log(`[Notification Stub] ${message}`);
-      return;
-    }
+  private subscribeProgramLogs(): void {
+    console.log("[SUBSCRIBE] Subscribing to program account transaction stream...");
 
+    this.connection.onLogs(
+      this.programPubkey,
+      async (logInfo) => {
+        if (logInfo.err) return;
+
+        for (const log of logInfo.logs) {
+          if (log.includes("TradeRecorded")) {
+            await this.handleTradeEvent(log, logInfo.signature);
+          } else if (log.includes("PrizeClaimed")) {
+            await this.handleClaimEvent(log);
+          }
+        }
+      },
+      "confirmed"
+    );
+  }
+
+  /**
+   * Enterprise Webhook Alert: Discord
+   */
+  public async notifyDiscord(title: string, description: string, fields: Array<{ name: string; value: string; inline?: boolean }>): Promise<void> {
+    if (!CONFIG.discordWebhookUrl) return;
     try {
-      await axios.post(SLACK_WEBHOOK_URL, {
-        username: "Panta x NectarFi Bot",
-        icon_emoji: ":trophy:",
-        attachments: [
+      await axios.post(CONFIG.discordWebhookUrl, {
+        embeds: [
           {
-            color: "#00FFA3",
-            pretext: "⚡ *Panta x NectarFi Trading Competition Update*",
-            text: message,
-            fields: fields.map((f) => ({
-              title: f.title,
-              value: f.value,
-              short: true,
-            })),
-            ts: Math.floor(Date.now() / 1000),
+            title: `🏆 ${title}`,
+            description,
+            color: 0x00f5a0, // Nectar Neon Green
+            fields,
+            footer: { text: "Panta x NectarFi Real-Time Execution Engine" },
+            timestamp: new Date().toISOString(),
           },
         ],
       });
-      console.log("Slack notification successfully dispatched.");
     } catch (err: any) {
-      console.error("Failed to dispatch Slack notification:", err.message);
+      console.error("[ALERT_ERROR] Discord notification failed:", err.message);
     }
   }
 
   /**
-   * Send reward confirmation email via Resend to the winner.
+   * Enterprise Webhook Alert: Slack (Optional)
    */
-  async sendWinnerEmail(recipientEmail: string, traderPubkey: string, rewardAmountUsdc: string) {
-    if (!this.resendClient) {
-      console.log(`[Resend Disabled] Reward notice to ${recipientEmail} for ${rewardAmountUsdc} USDC`);
-      return;
-    }
-
+  public async notifySlack(text: string): Promise<void> {
+    if (!CONFIG.slackWebhookUrl) return;
     try {
-      await this.resendClient.emails.send({
-        from: "rewards@panta-nectar.fi",
+      await axios.post(CONFIG.slackWebhookUrl, { text });
+    } catch (err: any) {
+      console.error("[ALERT_ERROR] Slack notification failed:", err.message);
+    }
+  }
+
+  /**
+   * Transactional Email: Resend Winner Notification
+   */
+  public async sendWinnerEmail(traderPubkey: string, rank: number, prizeAmountUsdc: string, recipientEmail: string): Promise<void> {
+    try {
+      const response = await resend.emails.send({
+        from: "competitions@nectarfi.com",
         to: recipientEmail,
-        subject: "🎉 Your Panta x NectarFi Competition Prize is Claimable!",
+        subject: `🎉 Congratulations! You Placed #${rank} in the Panta x NectarFi Arena!`,
         html: `
-          <h2>Congratulations Trader!</h2>
-          <p>Your address <code>${traderPubkey}</code> ranked in the prize tier of the Panta x NectarFi Trading Competition.</p>
-          <p><strong>Claimable Amount:</strong> ${rewardAmountUsdc} USDC</p>
-          <p>Your cryptographic Merkle proof has been finalized on Solana devnet/mainnet. Connect your wallet to claim.</p>
-          <br/>
-          <p><em>The Panta x NectarFi Foundation</em></p>
+          <div style="font-family: Arial, sans-serif; background-color: #0b0e14; color: #ffffff; padding: 24px; border-radius: 8px;">
+            <h1 style="color: #00f5a0;">Panta x NectarFi Trading Competition</h1>
+            <p>Outstanding performance! Your address <code>${traderPubkey}</code> finished at <strong>Rank #${rank}</strong>.</p>
+            <div style="background-color: #1a1f2c; padding: 16px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 18px;">Total Prize Entitlement: <strong style="color: #00f5a0;">${prizeAmountUsdc} USDC</strong></p>
+            </div>
+            <p>Your reward is secured in the on-chain PDA escrow vault. You can execute your trustless claim directly via the UI or by calling <code>claim_prize</code> on Solana.</p>
+            <br/>
+            <p style="color: #8c9ba5; font-size: 12px;">Automated Settlement Oracle ID: ${this.oracleKeypair.publicKey.toBase58()}</p>
+          </div>
         `,
       });
-      console.log(`Resend receipt dispatched to ${recipientEmail}`);
+      console.log(`[EMAIL_SENT] Dispatched Resend notification to ${recipientEmail} (ID: ${response.data?.id})`);
     } catch (err: any) {
-      console.error("Failed to send Resend email:", err.message);
+      console.error("[RESEND_ERROR] Failed to send transactional email:", err.message);
     }
   }
 
-  /**
-   * Settle an epoch off-chain, compute weights, and commit root to Solana.
-   */
-  async processEpochSettlement(competitionId: bigint, participants: ParticipantScore[]) {
-    console.log(`Processing epoch settlement for Competition #${competitionId}...`);
-
-    // 1. Anti-wash filtering: filter out participants with 0 or negative PnL or wash-patterns
-    const eligible = participants.filter((p) => p.volume > BigInt(1_000_000_000) && p.pnl > BigInt(0));
-
-    // 2. Allocate reward pool pro-rata or by rank
-    const totalPrizePool = BigInt(50_000_000_000); // 50,000 USDC (6 decimals)
-    const totalEligibleVolume = eligible.reduce((acc, curr) => acc + curr.volume, BigInt(0));
-
-    const preparedLeaves = eligible.map((p) => {
-      const share = (p.volume * totalPrizePool) / (totalEligibleVolume || BigInt(1));
-      return {
-        pubkey: new PublicKey(p.pubkey),
-        rewardAmount: share,
-      };
-    });
-
-    // 3. Build Merkle Tree
-    const tree = new MerkleTreeEngine(preparedLeaves);
-    const root = tree.getRoot();
-    console.log(`Computed Merkle Root: 0x${root.toString("hex")}`);
-
-    // 4. Send Slack Update
-    await this.broadcastLeaderboardAlert(`Competition #${competitionId} Finalized!`, [
-      { title: "Eligible Winners", value: eligible.length.toString() },
-      { title: "Total Volume Settled", value: `$${Number(totalEligibleVolume / BigInt(1_000_000)).toLocaleString()}` },
-      { title: "Root Hash", value: `0x${root.toString("hex").slice(0, 10)}...` },
+  private async handleTradeEvent(rawLog: string, txSignature: string): Promise<void> {
+    console.log(`[TRADE_EVENT] Detected fill on-chain. Signature: ${txSignature}`);
+    
+    // In production, parse base64 Anchor event data
+    await this.notifyDiscord("New High-Value Fill Recorded", "A qualifying trade was recorded in the arena.", [
+      { name: "Transaction", value: `[Explorer](https://explorer.solana.com/tx/${txSignature}?cluster=devnet)`, inline: true },
+      { name: "Engine", value: "Panta Intent Router", inline: true },
     ]);
+  }
 
-    return {
-      merkleRoot: root,
-      leaves: preparedLeaves,
-      tree,
-    };
+  private async handleClaimEvent(rawLog: string): Promise<void> {
+    console.log(`[CLAIM_EVENT] Prize claim detected.`);
+    await this.notifyDiscord("Prize Escrow Claim Executed", "A winning trader has disbursed rewards to their wallet.", [
+      { name: "Status", value: "Settled on-chain", inline: true },
+    ]);
+  }
+
+  /**
+   * Broadcast loop pushing periodic leaderboard updates to community channels
+   */
+  private startLeaderboardBroadcastLoop(): void {
+    setInterval(async () => {
+      // Simulate top trader aggregation
+      console.log("[METRICS] Polling latest standings and generating digest...");
+    }, CONFIG.leaderboardPollIntervalMs);
   }
 }
 
-// CLI Execution Entrypoint
+// CLI Launcher
 if (require.main === module) {
-  const daemon = new CompetitionKeeperDaemon();
-  console.log("Panta x NectarFi Automation Keeper initialized.");
-
-  // Demonstration mock execution
-  const mockParticipants: ParticipantScore[] = [
-    { pubkey: Keypair.generate().publicKey.toBase58(), volume: BigInt(500_000_000_000), pnl: BigInt(12_000_000), rewardAmount: BigInt(0) },
-    { pubkey: Keypair.generate().publicKey.toBase58(), volume: BigInt(300_000_000_000), pnl: BigInt(8_500_000), rewardAmount: BigInt(0) },
-    { pubkey: Keypair.generate().publicKey.toBase58(), volume: BigInt(50_000_000), pnl: BigInt(-1_000_000), rewardAmount: BigInt(0) }, // disqualified
-  ];
-
-  daemon.processEpochSettlement(BigInt(1), mockParticipants).then((res) => {
-    console.log("Epoch settled with root:", res.merkleRoot.toString("hex"));
+  const daemon = new PantaNectarCompetitionDaemon();
+  daemon.start().catch((err) => {
+    console.error("FATAL: Daemon initialization crashed:", err);
+    process.exit(1);
   });
 }

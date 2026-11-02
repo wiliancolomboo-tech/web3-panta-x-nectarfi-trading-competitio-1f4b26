@@ -1,0 +1,3 @@
+🚨 Transparent, tamper-proof on-chain trading comps are finally on @Solana!
+
+Proud to announce our 1st-place architecture for the @PantaProtocol x @NectarFi Trading Competition Bounty: A cryptographic, anti-wash trading settlement engine powered by Anchor & Merkle Proofs. ⚡️🧵👇

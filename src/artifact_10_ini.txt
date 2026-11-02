@@ -1,0 +1,9 @@
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_WS_URL=wss://api.mainnet-beta.solana.com
+ANCHOR_WALLET=./deploy-keypair.json
+COMPETITION_PROGRAM_ID=PNTANCtre4zK3w51239999999999999999999999999
+REWARD_MINT_ADDRESS=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+RESEND_API_KEY=re_123456789abcdef
+RESEND_FROM_EMAIL=competitions@nectarfi.exchange
+PORT=8080

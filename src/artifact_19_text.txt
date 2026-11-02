@@ -1,0 +1,14 @@
+/programs/nectar_rank/src/lib.rs
+/src/scoring.ts
+/src/notify.ts
+/src/index.ts
+/src/scoring.test.ts
+/Dockerfile
+/docker-compose.yml
+/.env.example
+/README.md
+/OPERATIONS.md
+Anchor IDL
+Program keypair and deployment record
+RPC and webhook configuration
+Competition creation transaction signatures

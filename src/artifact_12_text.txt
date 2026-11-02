@@ -1,0 +1,5 @@
+🚨 Introducing the Panta x @NectarFi Verifiable Tournament Engine: The new gold standard for DeFi trading competitions on @solana.
+
+Tired of wash-traded leaderboards & opaque reward distributions? We built a 100% on-chain, sybil-resistant competition infrastructure. ⚡️🏆
+
+Here is how it works 👇

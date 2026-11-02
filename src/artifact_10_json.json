@@ -1,0 +1,8 @@
+{
+     "status": "healthy",
+     "competition_id": 101,
+     "solana_rpc_latency_ms": 42,
+     "processed_trades": 84210,
+     "flagged_sybil_attempts": 34,
+     "last_checkpoint_slot": 268491823
+   }

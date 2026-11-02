@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  competition-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - AUTHORITY_KEYPAIR_PATH=/secrets/authority.json
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+    volumes:
+      - ./secrets:/secrets:ro
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'console.log(process.uptime())'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

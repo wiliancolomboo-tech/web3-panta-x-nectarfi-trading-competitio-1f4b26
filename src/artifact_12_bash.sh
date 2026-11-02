@@ -1,0 +1,1 @@
+spl-token balance <VAULT_PDA_ADDRESS> --url devnet

@@ -1,0 +1,6 @@
+Solana Program
+    |
+    +-- Score Attestation Worker
+    +-- Notification Worker
+    +-- API / Health Service
+    +-- Metrics / Logs

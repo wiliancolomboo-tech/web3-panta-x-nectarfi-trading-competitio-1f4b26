@@ -1,0 +1,54 @@
+flowchart TD
+    subgraph ClientLayer ["Client & Participant Layer"]
+        Trader["Solana Trader / API Bot"]
+        Admin["Competition Operator"]
+        Auditor["Public Auditor / Observer"]
+    end
+
+    subgraph SolanaOnChain ["Solana On-Chain Infrastructure (Anchor)"]
+        CompProgram["Panta-NectarFi Tournament Program"]
+        CompPDA["Competition State PDA"]
+        UserPDA["Participant State PDA"]
+        PrizeVault["Escrow Prize Vault (SPL PDA)"]
+    end
+
+    subgraph DeFiEcosystem ["Execution & Settlement Layer"]
+        PantaDEX["Panta Execution / DEX Router"]
+        NectarVaults["NectarFi Structured Yield Vaults"]
+    end
+
+    subgraph EnterpriseInfra ["Turnkey Integration Microservice"]
+        KeeperWorker["Event Listener & Keeper Crank"]
+        ScoreEngine["Verifiable Scorer & Merkle Builder"]
+        DiscordBot["Discord Webhook Bridge"]
+        SlackOps["Slack Security/Ops Channel"]
+        ResendAPI["Resend Email API"]
+    end
+
+    %% Execution Path
+    Trader -->|1. Register & Init PDA| CompProgram
+    Admin -->|0. Initialize & Fund Pool| CompProgram
+    CompProgram -->|Lock Rewards| PrizeVault
+
+    Trader -->|2. Execute Trades| PantaDEX
+    Trader -->|3. Deposit Collateral / Strategies| NectarVaults
+
+    PantaDEX -.->|CPI Event / Log| CompProgram
+    NectarVaults -.->|CPI Event / Log| CompProgram
+
+    CompProgram -->|Update PnL, Vol, Epoch| UserPDA
+    CompProgram -->|Aggregate Stats| CompPDA
+
+    %% Keeper & Settlement Loop
+    KeeperWorker -->|Poll Geyser / RPC Logs| CompProgram
+    KeeperWorker -->|Compute Epoch Leaderboard| ScoreEngine
+    ScoreEngine -->|Submit Finalized Root / Settlement| CompProgram
+
+    %% Automated Enterprise Dispatch
+    ScoreEngine -->|Post Hourly Top 10| DiscordBot
+    ScoreEngine -->|Alert on Disqualifications/Anomalies| SlackOps
+    ScoreEngine -->|Dispatch Digest to Contestants| ResendAPI
+
+    %% Claim Path
+    Trader -->|4. Claim Settled Prizes| CompProgram
+    CompProgram -->|Transfer SPL Rewards| Trader

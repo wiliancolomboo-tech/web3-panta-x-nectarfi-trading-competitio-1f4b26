@@ -1,0 +1,8 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+SOLANA_WS_URL=wss://api.devnet.solana.com
+PROGRAM_ID=PNTAnECTAR111111111111111111111111111111111
+COMPETITION_ID=1
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+RESEND_API_KEY=re_enterprise_test_key
+PORT=8080

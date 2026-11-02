@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  competition-worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: panta-nectar-worker
+    restart: always
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - SOLANA_WS_URL=${SOLANA_WS_URL}
+      - PROGRAM_ID=${PROGRAM_ID}
+      - COMPETITION_ID=${COMPETITION_ID}
+      - ADMIN_PRIVATE_KEY=${ADMIN_PRIVATE_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - NOTIFICATION_EMAIL_FROM=${NOTIFICATION_EMAIL_FROM}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

@@ -1,0 +1,24 @@
+🧵 1/3
+Traders want real yields; protocols want real volume. 
+
+Excited to introduce our winning submission for the @Panta & @NectarFi Trading Competition Bounty on @Solana! 
+
+We engineered an on-chain, zero-trust tournament engine where prize pools don't sit idle—they compound via NectarFi yield vaults while traders duel on Panta. ⚡️📈
+
+🧵 2/3
+Under the hood:
+🔒 PDA-escrowed prize vaults auto-compounding in NectarFi strategies
+🛡️ Sybil-resistant, anti-wash trading scoring dampens self-fills
+🌳 Keccak-256 Merkle proofs for instant, atomic on-chain winner payouts
+📡 Live multi-channel alerting pipeline via @Resend, Discord, and Slack
+
+Zero manual spreadsheets. 100% cryptographic certainty.
+
+🧵 3/3
+The result? 
++11.8% simulated APY added to the champion's purse during tournament runtimes, reducing admin overhead to literally 0 seconds.
+
+Complete open-source Anchor program, TS keeper daemon, and turnkey Docker setup:
+🔗 https://github.com/sponsor/panta-nectar-competition
+
+Let the games begin! 🍯🚀

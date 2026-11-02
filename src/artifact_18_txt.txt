@@ -1,0 +1,9 @@
++---------------------------------------------------------------------------------------------------+
+|                                 OPERATIONAL RUNBOOK INCIDENT MATRIX                               |
++--------------------+------------------------------------+-----------------------------------------+
+| Trigger            | Cause                              | Resolution Action                       |
++--------------------+------------------------------------+-----------------------------------------+
+| RPC Rate Limit     | Public endpoint throttled          | Fallback to private Helius/QuickNode RPC|
+| Wash Attack Spike  | Bot accounts cycling trade routing | Keeper auto-penalizes; triggers Discord |
+| Vault Insufficient | Incorrect reward parameter config  | Admin calls top-up SPL transfer to PDA  |
++--------------------+------------------------------------+-----------------------------------------+

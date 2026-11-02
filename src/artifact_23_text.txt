@@ -1,0 +1,6 @@
+How does it work?
+
+⚡️ Sub-second deterministic volume & PnL attribution via Anchor PDAs
+🛡️ Dynamic anti-wash filters discarding 0-slippage circular flow
+🔒 Non-custodial prize escrow vaults with trustless, programmatic SPL claims
+📬 Real-time @resend & webhook alert pipeline for live leaderboard shifts

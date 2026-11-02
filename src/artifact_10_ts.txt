@@ -1,0 +1,30 @@
+export interface PantaAdapter {
+  isEligible(wallet: string): Promise<boolean>;
+}
+
+export class HttpPantaAdapter implements PantaAdapter {
+  constructor(
+    private readonly endpoint: string,
+    private readonly apiKey: string,
+  ) {}
+
+  async isEligible(wallet: string): Promise<boolean> {
+    const response = await fetch(
+      `${this.endpoint}?wallet=${encodeURIComponent(wallet)}`,
+      {
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+          accept: "application/json",
+        },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Panta returned HTTP ${response.status}`);
+    }
+
+    const result = await response.json() as { eligible?: boolean };
+    return result.eligible === true;
+  }
+}

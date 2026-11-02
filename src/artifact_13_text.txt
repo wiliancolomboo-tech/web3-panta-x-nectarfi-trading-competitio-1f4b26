@@ -1,0 +1,5 @@
+Built for speed & absolute cryptographic fairness:
+🔹 Fee-Weighted Volume + Realized PnL scoring engine built natively in Anchor
+🔹 On-chain PDA trade verification connected directly to Panta DEX routing & Nectar pools
+🔹 Merkle-root prize vault claiming: Zero dust, zero gas waste, 100% non-custodial
+🔹 Real-time indexer dispatching @resend email alerts & Discord rank flips!

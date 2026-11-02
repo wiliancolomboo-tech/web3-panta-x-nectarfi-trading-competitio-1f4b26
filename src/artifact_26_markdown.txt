@@ -1,0 +1,25 @@
+1/4 🚀 Introducing the Panta x @NectarFi Verifiable Trading Competition Protocol!
+
+Traditional trading competitions rely on centralized black boxes and manual payouts prone to wash-trading. 
+
+We engineered an immutable, on-chain Anchor protocol built on @Solana with dynamic NectarFi yield escrow! 🧵👇
+
+2/4 🛡️ What makes this different?
+• Anti-wash dampening: Hyper-frequency churn is mathematically penalized on-chain.
+• Sybil-resistant gating: Backed by NectarFi Vault LP participation.
+• Dynamic yield boosting: Escrowed prize pools earn yield during tournament windows!
+
+3/4 ⚡ Real-time Telemetry & Autonomous Ops:
+Our headless TypeScript keeper indexes Panta DEX execution fills, computes EMA volumes, posts verifiable PDAs, and pushes real-time whale alerts to Discord, Slack & @resend!
+
+Zero downtime. Non-custodial settlement.
+
+4/4 🏆 Turnkey open-source release:
+📦 Anchor smart contracts
+🛠️ Autonomous Keeper Daemon
+🧪 100% Passing QA matrix
+🐳 1-click Docker orchestration
+
+Powering the next generation of competitive on-chain trading on @Solana! 
+
+GitHub PR: https://github.com/panta-nectar-bounty/submission #Solana #DeFi

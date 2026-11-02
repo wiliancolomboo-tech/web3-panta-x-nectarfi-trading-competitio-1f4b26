@@ -1,0 +1,10 @@
+{
+  "status": "healthy",
+  "uptime_seconds": 86420,
+  "cluster": "mainnet-beta",
+  "synced_slot": 298412890,
+  "competition_id": "1",
+  "epoch_status": "ACTIVE",
+  "active_participants": 1420,
+  "indexed_trades": 89412
+}

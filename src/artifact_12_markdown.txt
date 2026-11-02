@@ -1,0 +1,20 @@
+1/7 ⚡ Introducing HydraEngine: The Verifiable Trading & Yield Arena built natively for @PantaExchange x @NectarFi on @Solana!
+
+Trading competitions are historically broken by wash bots and opaque admin multisigs. We fixed this permanently. 🧵👇
+
+2/7 🔬 How it works:
+Hydra introduces a cross-protocol scoring engine:
+• Cleansed Net PnL (45%)
+• Anti-wash filtered Panta Margin Volume (35%)
+• NectarFi Time-Weighted Yield multiplier (20%)
+
+Sybil bots get filtered in real-time; genuine cross-protocol liquidity gets rewarded. 🌊
+
+3/7 🛡️ Zero admin custody on payouts:
+At epoch end, final standings are committed on-chain via Keccak256 Sparse Merkle Roots.
+Winners verify their branch and claim USDC directly from the escrow PDA in <400ms. Non-custodial, deterministic, instant. ⚡
+
+4/7 🏢 Enterprise-grade telemetry:
+Fully equipped with instant @Resend cryptographic email claim links for winning desks, real-time Discord/Slack whale activity monitors, and automated containerized keepers.
+
+Submission open, fully tested, and ready for Mainnet. Let the arena begin! 🏆🚀

@@ -1,0 +1,12 @@
+# Solana Network Configuration
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+ARENA_PROGRAM_ID=PArtNd8zV8hZ7mNzg6a7Z4R2R2jL4s9xHqB7d1vKpUm
+COMPETITION_ID=101
+
+# Oracle Authority Keypair (JSON Byte Array)
+ORACLE_PRIVATE_KEY=[145,22,89,178, ...]
+
+# Enterprise Notification Credentials
+RESEND_API_KEY=re_1234567890abcdef
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+ADMIN_ALERT_EMAIL=security-ops@nectarfi.exchange

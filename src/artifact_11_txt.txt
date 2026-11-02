@@ -1,0 +1,8 @@
+GET /healthz -> 200 OK
+{
+  "status": "healthy",
+  "programId": "PANTAnECtArFi111111111111111111111111111111",
+  "activeWebsocket": true,
+  "lastHeartbeat": 1726058920194,
+  "trackedTraders": 412
+}

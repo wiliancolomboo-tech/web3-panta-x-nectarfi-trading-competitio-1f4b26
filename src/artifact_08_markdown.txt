@@ -1,0 +1,20 @@
+1/4 🚨 Introducing the Panta x @NectarFi Verifiable Trading Competition Protocol! ⚡
+
+DeFi competitions are broken: off-chain leaderboards, wash-trading bots, and days of manual prize distributions.
+
+We built the institutional-grade, zero-custody settlement standard on @solana. 🧵👇
+
+2/4 🛠️ How it works:
+• High-performance Anchor PDA state machine handles verifiable registrations & dynamic splits.
+• Real-time cryptographic trade attestations eliminate wash trading.
+• Instant, non-custodial prize pool settlement direct to user wallets via SPL Token vaults. Zero manual audits.
+
+3/4 📊 Enterprise-first architecture:
+• Fully autonomous TypeScript indexing microservice
+• Multi-channel alerting integration with @resend, Discord webhooks, and Slack
+• Production-grade Dockerization & Prometheus telemetry ready for 1-click deployment.
+
+4/4 Check out the open-source architecture, Anchor contracts, and end-to-end integration tests here:
+github.com/nectar-fi/panta-nectar-competition-engine 
+
+Built for speed, math-backed integrity, and the future of Solana DeFi. LFG! 🍯🌊🚀

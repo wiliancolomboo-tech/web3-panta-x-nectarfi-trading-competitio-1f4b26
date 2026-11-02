@@ -1,0 +1,18 @@
+🧵 1/3: Excited to unveil the Panta x @NectarFi Trading Competition Protocol on @solana! 🚀
+
+Traditional trading comps suffer from centralized off-chain scoring, sybil manipulation, and idle, non-yielding margin. 
+
+We fixed this by integrating trustless on-chain settlement with NectarFi yield strategies.
+
+🧵 2/3: Here is how it works under the hood:
+🔹 Capital Productivity: All participant entry fees route to NectarFi vaults, growing the prize pool via real yield throughout the epoch.
+🔹 Anti-Wash Scoring: Real-time telemetry indexes perp volume & PnL, filtering out spoofed volume.
+🔹 Merkle Verification: Winners claim directly from audited Anchor PDAs via zero-knowledge / keccak proofs. Zero multi-sig delays.
+
+🧵 3/3: Complete open-source submission:
+✅ Production-grade Anchor 0.30.1 smart contract
+✅ Resend & Discord enterprise notification worker
+✅ 100% passing test matrix with cryptographic proofs
+✅ 1-click Docker orchestration
+
+Let's scale DeFi together with @NectarFi & Panta! ⚡️

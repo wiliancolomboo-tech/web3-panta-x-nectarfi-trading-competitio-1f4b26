@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "healthy",
+  "program": "PCP1111111111111111111111111111111111111111",
+  "epoch_status": "ACTIVE",
+  "synced_slot": 298412893
+}

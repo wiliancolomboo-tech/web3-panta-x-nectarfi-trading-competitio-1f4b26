@@ -1,0 +1,1 @@
+[Visual: Terminal capture of the Anchor test suite passing with 100% assertions]

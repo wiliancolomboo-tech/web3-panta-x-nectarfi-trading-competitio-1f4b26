@@ -1,0 +1,7 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+COMPETITION_PROGRAM_ID=PntNct11111111111111111111111111111111111
+KEEPER_PRIVATE_KEY=[12,43,156,...] # 64-byte JSON byte array
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+ADMIN_ALERT_EMAIL=ops@pantadex.io

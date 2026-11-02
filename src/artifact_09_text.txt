@@ -1,0 +1,17 @@
+1/3 🚀 Decentralized competitions just leveled up for @PantaFi & @NectarFi! 
+
+Presenting the Panta x NectarFi Trading Competition Engine (PT-NCTR-v1) on @solana.
+
+No spreadsheets, no manual multisig payouts, and zero wash-trading exploitation. Pure on-chain cryptographic settlement. 🧵👇
+
+2/3 ⚡ How it works:
+1️⃣ Sub-second DEX trade indexing across Panta LP & NectarFi vault tokens.
+2️⃣ Algorithmic Sybil & cyclic wash-trading filtration.
+3️⃣ RFC-6962 Keccak Merkle tree generation committed on-chain.
+4️⃣ Instant claims + automated payout receipts via @resend & Discord bots!
+
+3/3 🛡️ Fully open-source, Anchor 0.30 native, 100% test coverage, and 1-click Docker orchestration. 
+
+Built to drive authentic TVL, real fees, and trustless liquidity for the Solana ecosystem. 
+
+Check out the full repository and implementation: github.com/sponsor/panta-nectar-engine 🌐🔥

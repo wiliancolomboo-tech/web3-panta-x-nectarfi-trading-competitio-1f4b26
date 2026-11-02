@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  keeper-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PntNct1111111111111111111111111111111111111
+      - KEEPER_PRIVATE_KEY=[12,34,56,...] # Injected via secret manager
+      - COMPETITION_ID=PANTA-NECTAR-SEASON-1
+      - DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+      - SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+      - RESEND_API_KEY=re_123456789
+      - ALERT_EMAIL_RECIPIENT=ops@nectarfi.com
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

@@ -1,0 +1,83 @@
+{
+  "deliverable_id": "superteam_4b6a761f4b26",
+  "opportunity_id": "st-60d20763-152d-4f92-8b55-e1ffa44ae9e4",
+  "platform": "SuperteamEarn",
+  "title": "Panta x NectarFi Trading Competition Bounty",
+  "url": "https://earn.superteam.fun/listings/bounty/panta-x-nectarfi-trading-competition-bounty",
+  "budget": "500 USDG",
+  "prize_amount": 500.0,
+  "ecosystem": "Solana",
+  "github_url": "https://github.com/wiliancolomboo-tech/web3-panta-x-nectarfi-trading-competitio-1f4b26",
+  "hf_space_url": null,
+  "status": "ready_for_submission",
+  "validation_reports": [
+    {
+      "file": "artifact_01_txt.txt",
+      "language": "txt",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_02_mermaid.txt",
+      "language": "mermaid",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_03_toml.toml",
+      "language": "toml",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_04_rust.rs",
+      "language": "rust",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_05_json.json",
+      "language": "json",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_06_typescript.ts",
+      "language": "typescript",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_07_typescript.ts",
+      "language": "typescript",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_08_bash.sh",
+      "language": "bash",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_09_dockerfile.txt",
+      "language": "dockerfile",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_10_yaml.yaml",
+      "language": "yaml",
+      "valid": true,
+      "error": null
+    },
+    {
+      "file": "artifact_11_env.txt",
+      "language": "env",
+      "valid": true,
+      "error": null
+    }
+  ],
+  "git_initialized": true,
+  "created_at": "2026-11-02 23:48:19"
+}

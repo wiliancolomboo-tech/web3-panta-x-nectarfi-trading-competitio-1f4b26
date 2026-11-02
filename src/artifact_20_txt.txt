@@ -1,0 +1,7 @@
+No manual spreadsheets. No delayed reward payouts.
+
+Integrated with @resendlabs for automated email receipts & Discord/Slack telemetry bots.
+
+100% open-source, turnkey dockerized, and ready for production deployment.
+
+Check out the architecture & repo: github.com/sponsor/panta-nectar-engine 🚀

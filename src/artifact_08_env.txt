@@ -1,0 +1,8 @@
+SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+PROGRAM_ID="PntNctR111111111111111111111111111111111111"
+COMPETITION_ID="1"
+RELAYER_KEYPAIR_PATH="./secrets/relayer-keypair.json"
+DISCORD_WEBHOOK_URL="https://api.example.com/webhooks/alerts/placeholder"
+SLACK_WEBHOOK_URL="https://api.example.com/webhooks/alerts/placeholder"
+RESEND_API_KEY="re_123456789abcdef"
+ALERT_EMAIL_RECIPIENT="institutional-ops@nectarfi.com"

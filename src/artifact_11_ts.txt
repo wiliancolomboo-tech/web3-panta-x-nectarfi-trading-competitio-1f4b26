@@ -1,0 +1,44 @@
+export async function sendWinnerEmail(
+  resendApiKey: string,
+  recipient: string,
+  wallet: string,
+  rank: number,
+): Promise<void> {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${resendApiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "competition@example.com",
+      to: [recipient],
+      subject: "NectarRank competition result",
+      html: `
+        <h1>Congratulations</h1>
+        <p>Wallet <code>${wallet}</code> finished rank ${rank}.</p>
+        <p>Your result is anchored on Solana.</p>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Resend returned HTTP ${response.status}`);
+  }
+}
+
+export async function notifyWebhook(
+  webhookUrl: string,
+  text: string,
+): Promise<void> {
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ content: text, text }),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Webhook returned HTTP ${response.status}`);
+  }
+}

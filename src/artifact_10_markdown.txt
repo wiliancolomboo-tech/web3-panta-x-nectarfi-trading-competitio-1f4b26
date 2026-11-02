@@ -1,0 +1,16 @@
+1/4 🚀 Introducing the Verifiable On-Chain Competition Engine (VOCE) built for @PantaFi & @NectarFi! 
+
+Say goodbye to opaque off-chain scoreboards and delayed manual multisig payouts. Real-time, trustless trading competitions on @solana are finally here. 👇
+
+2/4 ⚡ Powered by Anchor, VOCE commits trade volume and PnL metrics directly to deterministic PDAs with anti-wash trading filters. 
+
+Prize vaults are locked in non-custodial smart contracts and disbursed instantly post-competition via cryptographic Merkle proofs. Zero custodial risk.
+
+3/4 🔔 Built with enterprise-grade operational tooling:
+- Real-time Discord/Slack whale trade notifications
+- Winner email dispatch via @resend
+- Turnkey Docker execution & 100% test coverage
+
+The benchmark for decentralized trading competitions on Solana is set. 🏆
+
+Check the open-source architecture here: https://github.com/panta-nectar-bounty/voce-engine

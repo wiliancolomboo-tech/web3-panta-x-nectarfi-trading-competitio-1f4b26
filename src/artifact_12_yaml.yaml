@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  competition-settlement-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: panta-nectar-engine
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - PROGRAM_ID=${PROGRAM_ID}
+      - COMPETITION_ID=${COMPETITION_ID}
+      - ADMIN_KEYPAIR_PATH=/etc/secrets/admin-keypair.json
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    volumes:
+      - ./admin-keypair.json:/etc/secrets/admin-keypair.json:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Daemon healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"

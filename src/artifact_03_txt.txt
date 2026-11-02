@@ -1,0 +1,21 @@
++-------------------------------------------------------------------------------------------------+
+|                                    INTEGRATION TOPOLOGY                                         |
++-------------------------------------------------------------------------------------------------+
+|                                                                                                 |
+|   [ Solana Geyser RPC / WebSocket ]                                                             |
+|                 │                                                                               |
+|                 ▼                                                                               |
+|   [ Panta x NectarFi Autonomous Engine ] ───────► [ Resend API ] ────► Trader Email Inboxes    |
+|                 │                                                                               |
+|                 ├───────────────────────────────► [ Slack / Discord ] ─► Incident Ops Channels  |
+|                 │                                                                               |
+|                 ▼                                                                               |
+|   [ Solana Mainnet / Devnet ]                                                                   |
+|         │                                                                                       |
+|         ├── Program: PantaNectarCompetition (Anchor)                                             |
+|         ├── PDA: ["competition", competition_id] ────── Store metadata & status                 |
+|         ├── PDA: ["vault", competition_id] ──────────── Token / Native SOL Escrow               |
+|         ├── PDA: ["merkle_root", epoch, competition_id] Commit validated scores                 |
+|         └── PDA: ["claim_receipt", participant, epoch] ── Anti-double-claim replay protection   |
+|                                                                                                 |
++-------------------------------------------------------------------------------------------------+

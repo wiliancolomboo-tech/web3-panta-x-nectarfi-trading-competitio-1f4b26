@@ -1,0 +1,28 @@
+🧵 1/3
+Excited to unveil our submission for the @PantaProtocol x @NectarFi Trading Competition Bounty on @Solana! ⚡️
+
+We engineered an on-chain, verifiable competition framework featuring real-time volume-weighted PnL scoring, zero counterparty risk, and automated escrow rewards. 🏆
+
+Here is how it works 👇
+
+---
+
+🧵 2/3
+Traditional trading contests suffer from sybil wash-trading & opaque spreadsheets. 
+Our solution:
+🔹 Deterministic Solana Anchor program with custom PDA vaults
+🔹 Anti-wash trading filters & trade attestation proofs
+🔹 Enterprise Resend & Discord telemetry for instant whale & rank-shift alerts
+🔹 Non-custodial prize escrow claims
+
+Traders compete natively while earning base yield via NectarFi basis vaults & Panta liquidity! 🌊📈
+
+---
+
+🧵 3/3
+The codebase is 100% open-source, battle-tested with full Mocha/Chai integration suites, and ships turnkey with Docker & healthcheck telemetry. 
+
+Check out the architecture, deploy scripts, and live demo here:
+🔗 GitHub: https://github.com/panta-nectar/competition-core
+
+Special thanks to @PantaProtocol & @NectarFi for pioneering the next wave of Solana DeFi. LFG! 🚀🔥

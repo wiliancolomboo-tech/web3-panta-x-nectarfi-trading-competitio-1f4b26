@@ -1,0 +1,11 @@
+OPERATIONAL PROCEDURES:
+1. EMERGENCY PAUSE / ESCROW RECOVERY:
+   - In the event of an upstream oracle or routing bug, call admin epoch extension.
+   - Admin retain authority to lock Merkle finalization until verified block height.
+
+2. LEADERBOARD RE-CALCULATION & SNAPSHOT DISPATCH:
+   $ npm run settle -- --competition-id 9001 --network mainnet
+
+3. TELEMETRY MONITORING:
+   - Worker exposes standard HTTP GET `/health` returning { status: "OK", indexed_blocks: n, active_traders: m }.
+   - Connect Prometheus scraper to port 8080 for Grafana alerting.

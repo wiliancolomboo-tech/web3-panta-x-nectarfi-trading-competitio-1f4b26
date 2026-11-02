@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  tournament-keeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: panta_nectar_keeper
+    restart: always
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PantaNectar111111111111111111111111111111111
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

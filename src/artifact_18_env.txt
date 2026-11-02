@@ -1,0 +1,14 @@
+RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=REPLACE_WITH_DEPLOYED_PROGRAM_ID
+ORACLE_KEYPAIR=/run/secrets/oracle.json
+DATABASE_URL=postgres://nectarrank:nectarrank@postgres:5432/nectarrank
+PORT=8080
+
+SLACK_WEBHOOK_URL=
+DISCORD_WEBHOOK_URL=
+RESEND_API_KEY=
+RESEND_FROM=
+NOTIFY_EMAIL=
+
+POLL_INTERVAL_MS=5000
+LOG_LEVEL=info

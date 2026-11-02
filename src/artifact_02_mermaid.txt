@@ -1,0 +1,48 @@
+flowchart TD
+    subgraph Trader_Layer["Client / Competitor Layer"]
+        User["Competitor Wallet"]
+        DApp["Panta / NectarFi Web Terminal"]
+    end
+
+    subgraph Protocol_Layer["Solana On-Chain Arena (Anchor Program)"]
+        State["Competition State PDA\n(panta_arena_state)"]
+        CompProfile["Competitor Profile PDA\n(profile, seed=[wallet, comp_id])"]
+        EscrowVault["Prize Pool Escrow PDA\n(SPL Token Vault)"]
+        TradeReceipt["Trade Attestation Record\n(Receipt PDA Deduplication)"]
+    end
+
+    subgraph Execution_Venues["Solana Liquidity Venues"]
+        NectarVault["NectarFi Structured Vaults"]
+        PantaRouter["Panta Liquidity / DEX Aggregator"]
+    end
+
+    subgraph Automation_Layer["Enterprise Indexer & Automation Worker"]
+        RPCSub["Geyser / RPC WebSocket Listener"]
+        AttestEngine["Cryptographic Attestation Worker"]
+        ResendAPI["Resend API (Transactional Email)"]
+        SlackWebhook["Discord/Slack Webhook Broadcaster"]
+        Prometheus["Prometheus / Grafana Telemetry"]
+    end
+
+    %% User Workflow
+    User -->|1. Register & Stake Deposit| State
+    User -->|2. Execute Swap / Vault Deposit| Execution_Venues
+    Execution_Venues -->|3. On-chain Transaction Logs| RPCSub
+
+    %% Off-chain Processing & Attestation
+    RPCSub -->|4. Parse Panta/NectarFi Event| AttestEngine
+    AttestEngine -->|5. Verify Signature & Nonce| AttestEngine
+    AttestEngine -->|6. Submit Signed Attestation| Protocol_Layer
+
+    %% On-Chain Verification
+    Protocol_Layer -->|7. Verify Signer & Write Metrics| CompProfile
+    Protocol_Layer -->|8. Mark Trade Hash Consumed| TradeReceipt
+
+    %% Notification & Telemetry
+    AttestEngine -->|9. Leaderboard Update Event| SlackWebhook
+    AttestEngine -->|10. Epoch Milestone & Claim Alerts| ResendAPI
+    AttestEngine -->|11. Expose Metrics / Health| Prometheus
+
+    %% Settlement
+    State -->|12. Epoch Finalized| EscrowVault
+    User -->|13. Claim Deterministic Payout| EscrowVault

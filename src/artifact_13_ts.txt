@@ -1,0 +1,80 @@
+import { describe, expect, it } from "vitest";
+import { aggregate, commitment, scoreTrade } from "./index.js";
+
+const wallet = "11111111111111111111111111111111";
+
+describe("scoring", () => {
+  it("scores positive notional", () => {
+    expect(
+      scoreTrade({
+        eventId: "a",
+        wallet,
+        notionalUsdMicros: 100n,
+        realizedPnlUsdMicros: 0n,
+        timestamp: 1,
+      }),
+    ).toBe(100n);
+  });
+
+  it("does not award negative pnl", () => {
+    expect(
+      scoreTrade({
+        eventId: "b",
+        wallet,
+        notionalUsdMicros: 100n,
+        realizedPnlUsdMicros: -50n,
+        timestamp: 1,
+      }),
+    ).toBe(100n);
+  });
+
+  it("aggregates and ranks deterministically", () => {
+    const scores = aggregate([
+      {
+        eventId: "a",
+        wallet,
+        notionalUsdMicros: 100n,
+        realizedPnlUsdMicros: 0n,
+        timestamp: 1,
+      },
+      {
+        eventId: "b",
+        wallet,
+        notionalUsdMicros: 50n,
+        realizedPnlUsdMicros: 0n,
+        timestamp: 2,
+      },
+    ]);
+
+    expect(scores).toHaveLength(1);
+    expect(scores[0].tradeCount).toBe(2);
+    expect(scores[0].score).toBe(150n);
+  });
+
+  it("produces stable commitments", () => {
+    const scores = aggregate([{
+      eventId: "a",
+      wallet,
+      notionalUsdMicros: 100n,
+      realizedPnlUsdMicros: 0n,
+      timestamp: 1,
+    }]);
+
+    const first = commitment(scores, 1).toString("hex");
+    const second = commitment(scores, 1).toString("hex");
+
+    expect(first).toBe(second);
+  });
+
+  it("rejects malformed wallets", () => {
+    expect(() =>
+      scoreTrade({
+        eventId: "x",
+        wallet: "bad",
+        notionalUsdMicros: 1n,
+        realizedPnlUsdMicros: 0n,
+        timestamp: 1,
+      }),
+    ).toThrow("invalid Solana wallet");
+  });
+});

@@ -1,0 +1,24 @@
+🧵 1/3
+Excited to unveil the Panta x @NectarFi Trading Tournament Engine on @solana! 🚀
+
+Traditional trading competitions are plagued by wash-trading, delayed payouts, and opaque spreadsheets. 
+
+We engineered an on-chain, trust-minimized solution with sub-second Merkle claims:
+👇
+
+🧵 2/3
+Under the hood:
+⚡️ Sybil-resistant dual-metric scoring (Volume + Realized Vault PnL)
+⚡️ Zero-knowledge-friendly Keccak-256 Merkle Settlement PDA
+⚡️ Instant, permissionless prize claims with re-entrancy defense
+⚡️ Real-time automated Discord/Slack feeds + @resend email alerts
+
+No centralized claim scripts. No counterparty risk.
+
+🧵 3/3
+The entire repository is production-ready, featuring an Anchor 0.30 program, end-to-end TypeScript daemon, 100% test coverage, and turnkey Docker orchestration.
+
+Ready to scale protocol liquidity for @NectarFi & Panta.
+
+GitHub & Docs: https://github.com/panta-nectar/competition-engine
+#Solana #DeFi #Web3 #Rust

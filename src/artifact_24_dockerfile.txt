@@ -1,0 +1,16 @@
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++ git
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
+EXPOSE 8080
+
+USER node
+CMD ["node", "dist/cli.js", "start-keeper"]

@@ -1,0 +1,12 @@
+{
+  "status": "HEALTHY",
+  "activeCompetitionId": 1,
+  "lastIndexedSlot": 268492011,
+  "registeredParticipants": 1420,
+  "merkleState": "PENDING_FINALIZATION",
+  "notificationServices": {
+    "slack": "ONLINE",
+    "discord": "ONLINE",
+    "resend": "READY"
+  }
+}

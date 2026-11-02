@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  competition-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: panta-nectar-worker
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - NOTIFICATION_EMAIL=operations@nectarfi.io
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - HEALTHCHECK_PORT=8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

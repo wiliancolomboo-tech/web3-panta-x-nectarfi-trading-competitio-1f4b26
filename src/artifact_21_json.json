@@ -1,0 +1,9 @@
+{
+  "status": "healthy",
+  "programId": "PANTAnEcTar11111111111111111111111111111111",
+  "authority": "AuTh1111111111111111111111111111111111111111",
+  "epochRemainingSeconds": 48210,
+  "trackedTraders": 1420,
+  "syncedSlot": 284102941,
+  "uptimeSec": 86400
+}

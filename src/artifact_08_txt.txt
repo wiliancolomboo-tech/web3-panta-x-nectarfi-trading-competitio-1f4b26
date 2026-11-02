@@ -1,0 +1,9 @@
++-------------------------------------------------------------------------------+
+|                      OPERATIONAL HEALTH CHECK MATRIX                           |
++---------------------+-------------------------------+-------------------------+
+| Target / Service    | Command / Metric              | Normal Threshold        |
++---------------------+-------------------------------+-------------------------+
+| Docker Sentinel     | curl http://localhost:8080/healthz | {"status":"healthy"}  |
+| RPC Webhook Delay   | Event subscription latency    | < 400ms                 |
+| Escrow Vault Solv.  | spl-token balance <VAULT_PDA> | == Total Prize Pool     |
++---------------------+-------------------------------+-------------------------+

@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  arena-agent:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: panta-nectar-arena-engine
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - COMPETITION_ID=1001
+      - PANTA_PROGRAM_ID=PntARouter11111111111111111111111111111111
+      - NECTAR_VAULT_PROGRAM_ID=NctrVault11111111111111111111111111111111
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

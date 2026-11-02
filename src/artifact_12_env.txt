@@ -1,0 +1,6 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=PnC1111111111111111111111111111111111111111
+KEEPER_KEYPAIR_SECRET=[1,2,3,...] # Array of bytes for keeper authority
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+RESEND_API_KEY=re_123456789
+VIP_ALERT_EMAIL=security-lead@nectarfi.com

@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { scoreTrades } from "../src/scoring.js";
+
+describe("deterministic score engine", () => {
+  it("scores trades deterministically", () => {
+    const result = scoreTrades(
+      [
+        {
+          trader: "A",
+          market: "SOL-USDC",
+          executedAt: 100,
+          notional: 100_000n,
+          pnl: 5_000n,
+          fee: 100n,
+        },
+      ],
+      0,
+      200,
+      1n,
+    );
+
+    expect(result.volume).toBe(100_000n);
+    expect(result.pnl).toBe(4_900n);
+    expect(result.score).toBe(149n);
+  });
+
+  it("excludes trades outside the competition window", () => {
+    const result = scoreTrades(
+      [{
+        trader: "A",
+        market: "SOL-USDC",
+        executedAt: 300,
+        notional: 100_000n,
+        pnl: 5_000n,
+        fee: 0n,
+      }],
+      0,
+      200,
+      1n,
+    );
+
+    expect(result.volume).toBe(0n);
+    expect(result.pnl).toBe(0n);
+    expect(result.score).toBe(0n);
+  });
+
+  it("rejects invalid windows", () => {
+    expect(() =>
+      scoreTrades([], 10, 10, 1n),
+    ).toThrow("invalid competition window");
+  });
+
+  it("handles negative PnL without negative score contribution", () => {
+    const result = scoreTrades(
+      [{
+        trader: "A",
+        market: "SOL-USDC",
+        executedAt: 100,
+        notional: 100_000n,
+        pnl: -5_000n,
+        fee: 100n,
+      }],
+      0,
+      200,
+      1n,
+    );
+
+    expect(result.pnl).toBe(-5_100n);
+    expect(result.score).toBe(100n);
+  });
+});

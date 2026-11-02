@@ -1,0 +1,14 @@
+# Solana Network Configuration
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+ANCHOR_WALLET=/root/.config/solana/id.json
+ANCHOR_PROVIDER_URL=https://api.mainnet-beta.solana.com
+
+# Competition Parameters
+COMPETITION_ID=PANTA-NECTAR-SPRINT-01
+TOTAL_PRIZE_ATOMICS=50000000000
+
+# Enterprise Communications
+RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuv
+RESEND_FROM_EMAIL=rewards@nectarfi.com
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder

@@ -1,41 +1,44 @@
 flowchart TD
-    subgraph "Trader Ingress & Execution"
-        Trader["Trader / Market Maker"]
-        UI["Panta Competition Terminal"]
-        Trader -->|"1. Register & Stake Collateral"| UI
-        Trader -->|"2. Execute Swaps / Perps"| PantaRouter["Panta DEX Routing Engine"]
+    subgraph Users ["Trading Competitors"]
+        TraderA["Trader A (Alice)"]
+        TraderB["Trader B (Bob)"]
     end
 
-    subgraph "Solana On-Chain Runtime (Anchor)"
-        CompProg["Panta x NectarFi Program"]
-        PrizeVault["Program Escrow Vault (SPL)"]
-        NectarVault["NectarFi Dynamic LP Vault"]
-        LeaderboardState["Competition Epoch PDA"]
-        UserScorePDA["User Performance PDA"]
-        
-        UI -->|"Register User"| CompProg
-        CompProg -->|"Deposit Stake"| PrizeVault
-        PrizeVault -->|"Stake Idle Liquidity"| NectarVault
-        PantaRouter -.->|"Emit Trade Execution Event"| CompProg
-        CompProg -->|"Update PnL / Volume Accrual"| UserScorePDA
+    subgraph Program ["Solana Anchor Program: panta_nectar_competition"]
+        Config["Competition State PDA\n(Timestamps, Rules, Tiers)"]
+        VaultPDA["NectarFi Prize Vault PDA\n(Principal + Accrued Yield)"]
+        Leaderboard["On-Chain Leaderboard State\n(Top-K Heap, Volume, PnL)"]
+        UserPDA["Participant State PDA\n(Realized PnL, Volume, Nonce)"]
     end
 
-    subgraph "Enterprise Off-Chain Automation & Keeper Engine"
-        KeeperDaemon["Enterprise Keeper Worker (TypeScript)"]
-        SolanaRPC["Solana Geyser / Dedicated RPC"]
-        Ed25519Signer["Keeper Settlement Signer"]
-        
-        SolanaRPC -->|"Stream Events & Logs"| KeeperDaemon
-        KeeperDaemon -->|"Compute Anti-Wash Metrics"| KeeperDaemon
-        KeeperDaemon -->|"Sign Epoch Settlement State"| Ed25519Signer
-        Ed25519Signer -->|"Settle Epoch & Post Merkle Root"| CompProg
+    subgraph Protocols ["Ecosystem Protocols"]
+        Panta["Panta Routing / DEX Engine\n(Swap & Perps Execution)"]
+        Nectar["NectarFi Protocol\n(Automated Structured Yield Vault)"]
     end
 
-    subgraph "Enterprise Telemetry & Notifications"
-        ResendAPI["Resend Email API"]
-        SlackWebhook["Slack / Discord Webhook Pipeline"]
-        
-        KeeperDaemon -->|"Leaderboard Shifts & Milestones"| SlackWebhook
-        KeeperDaemon -->|"Prize Distribution Receipts"| ResendAPI
-        CompProg -->|"Final Claim Event"| Trader
+    subgraph OffChain ["Enterprise Automation & Telemetry"]
+        Keeper["Autonomous Indexer & Keeper CLI\n(Rust / TypeScript)"]
+        Discord["Discord / Slack Webhook Service"]
+        Resend["Resend Institutional Email Dispatcher"]
     end
+
+    %% User Interactions
+    TraderA -->|"1. Register & Stake Entry Fee"| Program
+    TraderB -->|"1. Register & Stake Entry Fee"| Program
+    Program -->|"2. Deposit Funds into Yield Vault"| Nectar
+
+    %% Execution Loop
+    TraderA -->|"3. Execute Trades"| Panta
+    Panta -->|"4. CPI Trade Attestation Event"| Program
+    Program -->|"5. Update PnL & Volume Weights"| UserPDA
+    UserPDA -->|"6. Rebalance Score Matrix"| Leaderboard
+
+    %% Off-chain Loop
+    Leaderboard -.->|"7. WebSocket Log Monitoring"| Keeper
+    Nectar -.->|"8. Harvest Compounded Yield"| VaultPDA
+    Keeper -->|"9. Trigger Epoch Finalization"| Program
+    Program -->|"10. Disburse Prizes + Escrow Return"| Users
+
+    %% Telemetry
+    Keeper -->|"11. Post Winner Announcements"| Discord
+    Keeper -->|"12. Deliver Prize Claim Receipts"| Resend

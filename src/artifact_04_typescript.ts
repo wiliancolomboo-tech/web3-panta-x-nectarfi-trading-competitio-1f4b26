@@ -1,8 +1,6 @@
-// tests/panta_nectar_competition.ts
-
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { PantaNectarCompetition } from "../target/types/panta_nectar_competition";
+import { PantaNectarArena } from "../target/types/panta_nectar_arena";
 import {
   TOKEN_PROGRAM_ID,
   createMint,
@@ -10,39 +8,48 @@ import {
   mintTo,
   getAccount,
 } from "@solana/spl-token";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { assert, expect } from "chai";
-import { keccak_256 } from "@noble/hashes/sha3";
+import { expect } from "chai";
+import { Keypair, PublicKey } from "@solana/web3.js";
 
-describe("panta_nectar_competition", () => {
+describe("panta_nectar_arena Comprehensive Verification", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PantaNectarCompetition as Program<PantaNectarCompetition>;
-
-  let rewardMint: PublicKey;
-  let authorityRewardAta: PublicKey;
-  let userRewardAta: PublicKey;
-  let competitionPda: PublicKey;
-  let escrowVaultPda: PublicKey;
-  let participantPda: PublicKey;
-
+  const program = anchor.workspace.PantaNectarArena as Program<PantaNectarArena>;
   const authority = (provider.wallet as anchor.Wallet).payer;
-  const traderUser = Keypair.generate();
-  const competitionId = new anchor.BN(101);
-  const entryFee = new anchor.BN(5_000_000); // 5 USDC
-  const minTradeVolume = new anchor.BN(10_000_000);
+  const oracleKeypair = Keypair.generate();
+  const traderAlice = Keypair.generate();
+  const traderBob = Keypair.generate();
+
+  let prizeMint: PublicKey;
+  let authorityTokenAccount: PublicKey;
+  let competitionPda: PublicKey;
+  let prizeVaultPda: PublicKey;
+  let aliceParticipantPda: PublicKey;
+  let bobParticipantPda: PublicKey;
+  let aliceTokenAccount: PublicKey;
+
+  const competitionId = new anchor.BN(88812);
+  const initialPrizeAmount = new anchor.BN(10_000_000_000); // 10,000 USDC (6 decimals)
+  const minTradeSize = new anchor.BN(50_000_000); // 50 USDC
+
+  // 10 winner tiers summing up to 10,000 BPS (100%)
+  const tierBps = [
+    3000, 2000, 1500, 1000, 700, 500, 400, 300, 300, 300,
+  ];
 
   before(async () => {
-    // Airdrop SOL to trader
-    const airdropSig = await provider.connection.requestAirdrop(
-      traderUser.publicKey,
-      2 * anchor.web3.LAMPORTS_PER_SOL
-    );
-    await provider.connection.confirmTransaction(airdropSig);
+    // 1. Airdrop SOL to test actors
+    const sigAlice = await provider.connection.requestAirdrop(traderAlice.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL);
+    const sigBob = await provider.connection.requestAirdrop(traderBob.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL);
+    const sigOracle = await provider.connection.requestAirdrop(oracleKeypair.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL);
+    
+    await provider.connection.confirmTransaction(sigAlice);
+    await provider.connection.confirmTransaction(sigBob);
+    await provider.connection.confirmTransaction(sigOracle);
 
-    // Create USDC-like reward mint
-    rewardMint = await createMint(
+    // 2. Create SPL Mint for Prize Escrow (USDC equivalent)
+    prizeMint = await createMint(
       provider.connection,
       authority,
       authority.publicKey,
@@ -50,215 +57,226 @@ describe("panta_nectar_competition", () => {
       6
     );
 
-    // Create ATAs
-    authorityRewardAta = await createAccount(
+    // 3. Create Authority Token Account and mint funds
+    authorityTokenAccount = await createAccount(
       provider.connection,
       authority,
-      rewardMint,
+      prizeMint,
       authority.publicKey
     );
 
-    userRewardAta = await createAccount(
+    await mintTo(
       provider.connection,
-      traderUser,
-      rewardMint,
-      traderUser.publicKey
+      authority,
+      prizeMint,
+      authorityTokenAccount,
+      authority.publicKey,
+      50_000_000_000
     );
 
-    // Mint supply to authority and user
-    await mintTo(provider.connection, authority, rewardMint, authorityRewardAta, authority, 1_000_000_000);
-    await mintTo(provider.connection, authority, rewardMint, userRewardAta, authority, 50_000_000);
+    // 4. Derive PDAs
+    const compIdBuffer = Buffer.alloc(8);
+    compIdBuffer.writeBigUInt64LE(BigInt(competitionId.toString()));
 
-    // Derive PDAs
     [competitionPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("competition"), competitionId.toArrayLike(Buffer, "le", 8)],
+      [Buffer.from("competition"), compIdBuffer],
       program.programId
     );
 
-    [escrowVaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("escrow"), competitionPda.toBuffer()],
+    [prizeVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("prize_vault"), competitionPda.toBuffer()],
       program.programId
     );
 
-    [participantPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("participant"), competitionPda.toBuffer(), traderUser.publicKey.toBuffer()],
+    [aliceParticipantPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("participant"), competitionPda.toBuffer(), traderAlice.publicKey.toBuffer()],
       program.programId
+    );
+
+    [bobParticipantPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("participant"), competitionPda.toBuffer(), traderBob.publicKey.toBuffer()],
+      program.programId
+    );
+
+    aliceTokenAccount = await createAccount(
+      provider.connection,
+      authority,
+      prizeMint,
+      traderAlice.publicKey
     );
   });
 
-  it("1. Successfully initializes competition with vault escrow", async () => {
-    const currentSlot = await provider.connection.getSlot();
-    const startSlot = new anchor.BN(currentSlot + 1);
-    const endSlot = new anchor.BN(currentSlot + 200);
+  it("1. Initializes the competition with funded vault escrow", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = new anchor.BN(now - 100);
+    const endTime = new anchor.BN(now + 3600); // 1 hour runtime
 
     await program.methods
-      .initializeCompetition(competitionId, startSlot, endSlot, entryFee, minTradeVolume)
+      .initializeCompetition(
+        competitionId,
+        startTime,
+        endTime,
+        2, // Hybrid score (Volume + Realized PnL)
+        minTradeSize,
+        tierBps,
+        initialPrizeAmount
+      )
       .accounts({
         competition: competitionPda,
-        rewardMint: rewardMint,
-        escrowVault: escrowVaultPda,
+        prizeVault: prizeVaultPda,
+        prizeMint: prizeMint,
+        authorityTokenAccount: authorityTokenAccount,
+        oracleAuthority: oracleKeypair.publicKey,
         authority: authority.publicKey,
-        systemProgram: SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       })
       .rpc();
 
-    const compAccount = await program.account.competitionState.fetch(competitionPda);
-    assert.equal(compAccount.competitionId.toString(), competitionId.toString());
-    assert.equal(compAccount.totalParticipants.toNumber(), 0);
-    assert.equal(compAccount.isSettled, false);
+    const compAccount = await program.account.competition.fetch(competitionPda);
+    expect(compAccount.competitionId.toString()).to.equal(competitionId.toString());
+    expect(compAccount.totalPrizePool.toString()).to.equal(initialPrizeAmount.toString());
+    expect(compAccount.participantCount.toNumber()).to.equal(0);
+
+    const vaultBalance = await getAccount(provider.connection, prizeVaultPda);
+    expect(vaultBalance.amount.toString()).to.equal(initialPrizeAmount.toString());
   });
 
-  it("2. Funds the competition prize pool escrow", async () => {
-    const fundAmount = new anchor.BN(250_000_000); // 250 tokens
-
-    await program.methods
-      .fundPrizePool(fundAmount)
-      .accounts({
-        competition: competitionPda,
-        escrowVault: escrowVaultPda,
-        funderTokenAccount: authorityRewardAta,
-        funder: authority.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      })
-      .rpc();
-
-    const escrowAccount = await getAccount(provider.connection, escrowVaultPda);
-    assert.equal(escrowAccount.amount.toString(), fundAmount.toString());
-
-    const compAccount = await program.account.competitionState.fetch(competitionPda);
-    assert.equal(compAccount.totalPrizePool.toString(), fundAmount.toString());
-  });
-
-  it("3. Registers participant and deposits entry fee", async () => {
+  it("2. Registers Alice and Bob as participants", async () => {
     await program.methods
       .registerParticipant()
       .accounts({
         competition: competitionPda,
-        participantRecord: participantPda,
-        escrowVault: escrowVaultPda,
-        userTokenAccount: userRewardAta,
-        user: traderUser.publicKey,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        participant: aliceParticipantPda,
+        trader: traderAlice.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([traderUser])
+      .signers([traderAlice])
       .rpc();
 
-    const participantAccount = await program.account.participantRecord.fetch(participantPda);
-    assert.equal(participantAccount.user.toBase58(), traderUser.publicKey.toBase58());
-    assert.equal(participantAccount.totalVolume.toNumber(), 0);
-    assert.equal(participantAccount.hasClaimed, false);
-  });
-
-  it("4. Records high-frequency trades on-chain via authorized caller", async () => {
-    const volume = new anchor.BN(50_000_000);
-    const pnl = new anchor.BN(2_500_000);
-
     await program.methods
-      .recordTrade(volume, pnl)
+      .registerParticipant()
       .accounts({
         competition: competitionPda,
-        participantRecord: participantPda,
+        participant: bobParticipantPda,
+        trader: traderBob.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([traderBob])
+      .rpc();
+
+    const aliceAcc = await program.account.participant.fetch(aliceParticipantPda);
+    expect(aliceAcc.trader.toBase58()).to.equal(traderAlice.publicKey.toBase58());
+    expect(aliceAcc.weightedScore.toNumber()).to.equal(0);
+
+    const compAccount = await program.account.competition.fetch(competitionPda);
+    expect(compAccount.participantCount.toNumber()).to.equal(2);
+  });
+
+  it("3. Records a valid trade for Alice with Panta 10% routing boost", async () => {
+    const tradeVolume = new anchor.BN(100_000_000); // 100 USD
+    const realizedPnl = new anchor.BN(10_000_000);   // 10 USD
+
+    await program.methods
+      .recordTrade(tradeVolume, realizedPnl, true) // is_panta_routing = true
+      .accounts({
+        competition: competitionPda,
+        participant: aliceParticipantPda,
+        oracleAuthority: oracleKeypair.publicKey,
+      })
+      .signers([oracleKeypair])
+      .rpc();
+
+    const aliceAcc = await program.account.participant.fetch(aliceParticipantPda);
+    expect(aliceAcc.cumulativeVolume.toString()).to.equal(tradeVolume.toString());
+    expect(aliceAcc.tradeCount.toNumber()).to.equal(1);
+    
+    // Base Hybrid = 100 + (10 * 2) = 120. Multiplier 11000 / 10000 = 132
+    expect(aliceAcc.weightedScore.toNumber()).to.be.greaterThan(0);
+  });
+
+  it("4. Enforces minimum trade size threshold", async () => {
+    const tinyVolume = new anchor.BN(1_000_000); // 1 USD (< 50 USD min)
+    const pnl = new anchor.BN(0);
+
+    try {
+      await program.methods
+        .recordTrade(tinyVolume, pnl, false)
+        .accounts({
+          competition: competitionPda,
+          participant: bobParticipantPda,
+          oracleAuthority: oracleKeypair.publicKey,
+        })
+        .signers([oracleKeypair])
+        .rpc();
+      expect.fail("Should have thrown TradeBelowMinSize");
+    } catch (err: any) {
+      expect(err.toString()).to.include("TradeBelowMinSize");
+    }
+  });
+
+  it("5. Triggers anti-wash trading rate limiter under spam conditions", async () => {
+    // Send repeated trades in quick succession within identical slots
+    const validVolume = new anchor.BN(60_000_000);
+    for (let i = 0; i < 16; i++) {
+      await program.methods
+        .recordTrade(validVolume, new anchor.BN(0), false)
+        .accounts({
+          competition: competitionPda,
+          participant: bobParticipantPda,
+          oracleAuthority: oracleKeypair.publicKey,
+        })
+        .signers([oracleKeypair])
+        .rpc();
+    }
+
+    const bobAcc = await program.account.participant.fetch(bobParticipantPda);
+    expect(bobAcc.isDisqualified).to.be.true;
+  });
+
+  it("6. Finalizes competition and verifies Rank 1 prize claim", async () => {
+    // Warp time by updating competition end_time in test context or waiting
+    // For deterministic unit testing, simulate admin rank assignment
+    await program.methods
+      .finalizeCompetition([traderAlice.publicKey])
+      .accounts({
+        competition: competitionPda,
         authority: authority.publicKey,
       })
       .rpc();
 
-    const participantAccount = await program.account.participantRecord.fetch(participantPda);
-    assert.equal(participantAccount.totalVolume.toString(), volume.toString());
-    assert.equal(participantAccount.realizedPnl.toString(), pnl.toString());
-  });
-
-  it("5. Rejects unauthorized trade logging", async () => {
-    const rogue = Keypair.generate();
-    try {
-      await program.methods
-        .recordTrade(new anchor.BN(100), new anchor.BN(10))
-        .accounts({
-          competition: competitionPda,
-          participantRecord: participantPda,
-          authority: rogue.publicKey,
-        })
-        .signers([rogue])
-        .rpc();
-      assert.fail("Should have thrown UnauthorizedSigner");
-    } catch (err: any) {
-      expect(err.toString()).to.include("UnauthorizedSigner");
-    }
-  });
-
-  it("6. Settles epoch and validates Merkle-proof reward distribution", async () => {
-    // Fast-forward slot progress by generating empty blocks if localnet, or wait
-    const compAccount = await program.account.competitionState.fetch(competitionPda);
-    let currentSlot = await provider.connection.getSlot();
-
-    // Settle with a known single-leaf Merkle root for traderUser
-    const rewardClaim = BigInt(15_000_000); // 15 USDC
-    const amountBuf = Buffer.alloc(8);
-    amountBuf.writeBigUInt64LE(rewardClaim);
-    const leaf = Buffer.from(
-      keccak_256(Buffer.concat([traderUser.publicKey.toBuffer(), amountBuf]))
-    );
-
-    // Root of 1 element is leaf itself
-    const rootArray = Array.from(leaf);
-
-    // Settle Epoch
     await program.methods
-      .settleEpoch(rootArray)
+      .setParticipantRank(1) // Rank 1 = 3000 BPS (30%)
       .accounts({
         competition: competitionPda,
+        participant: aliceParticipantPda,
         authority: authority.publicKey,
       })
       .rpc();
 
-    const settledComp = await program.account.competitionState.fetch(competitionPda);
-    assert.equal(settledComp.isSettled, true);
+    const aliceBeforeBalance = await getAccount(provider.connection, aliceTokenAccount);
+    expect(aliceBeforeBalance.amount.toString()).to.equal("0");
 
-    // User claims reward
-    const beforeBalance = (await getAccount(provider.connection, userRewardAta)).amount;
-
+    // Alice claims prize
     await program.methods
-      .claimReward(new anchor.BN(rewardClaim.toString()), [])
+      .claimPrize()
       .accounts({
         competition: competitionPda,
-        participantRecord: participantPda,
-        escrowVault: escrowVaultPda,
-        userRewardAccount: userRewardAta,
-        user: traderUser.publicKey,
+        participant: aliceParticipantPda,
+        prizeVault: prizeVaultPda,
+        traderTokenAccount: aliceTokenAccount,
+        trader: traderAlice.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([traderUser])
+      .signers([traderAlice])
       .rpc();
 
-    const afterBalance = (await getAccount(provider.connection, userRewardAta)).amount;
-    assert.equal(
-      (afterBalance - beforeBalance).toString(),
-      rewardClaim.toString()
-    );
+    const aliceAfterBalance = await getAccount(provider.connection, aliceTokenAccount);
+    // 30% of 10,000 USDC = 3,000 USDC = 3,000,000,000
+    expect(aliceAfterBalance.amount.toString()).to.equal("3000000000");
 
-    const claimedParticipant = await program.account.participantRecord.fetch(participantPda);
-    assert.equal(claimedParticipant.hasClaimed, true);
-  });
-
-  it("7. Prevents double-claim exploits", async () => {
-    try {
-      await program.methods
-        .claimReward(new anchor.BN(15_000_000), [])
-        .accounts({
-          competition: competitionPda,
-          participantRecord: participantPda,
-          escrowVault: escrowVaultPda,
-          userRewardAccount: userRewardAta,
-          user: traderUser.publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .signers([traderUser])
-        .rpc();
-      assert.fail("Double claim must fail");
-    } catch (err: any) {
-      expect(err.toString()).to.include("RewardAlreadyClaimed");
-    }
+    const aliceAcc = await program.account.participant.fetch(aliceParticipantPda);
+    expect(aliceAcc.prizeClaimed).to.be.true;
   });
 });

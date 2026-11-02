@@ -1,23 +1,30 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  competition-keeper:
+  arena-indexer-oracle:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: always
+    container_name: panta-nectar-indexer
+    restart: unless-stopped
     environment:
       - SOLANA_RPC_URL=https://api.devnet.solana.com
-      - PROGRAM_ID=PNTAnECTAR111111111111111111111111111111111
+      - SOLANA_WS_URL=wss://api.devnet.solana.com
+      - PROGRAM_ID=PNTAnECTAR1111111111111111111111111111111111
+      - COMPETITION_ID=101
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      - AUTHORITY_KEYPAIR_PATH=/secrets/authority.json
-    volumes:
-      - ./secrets:/secrets:ro
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 15s
       timeout: 5s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

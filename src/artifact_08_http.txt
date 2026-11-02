@@ -1,0 +1,13 @@
+GET /health HTTP/1.1
+Host: localhost:8080
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "HEALTHY",
+  "programId": "PANTAnectAr1111111111111111111111111111111",
+  "connectedRpcSlot": 268910412,
+  "queueLagSeconds": 0.42,
+  "totalProcessedTraders": 1420
+}

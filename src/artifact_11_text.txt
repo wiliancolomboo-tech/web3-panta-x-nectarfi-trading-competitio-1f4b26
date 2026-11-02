@@ -1,0 +1,9 @@
+🧵 3/3
+🛡️ Production-grade security:
+- Disqualification flags for zero-delta wash traders
+- Complete Anchor unit test suite with 100% assertions passed
+- 1-click Docker orchestration ready for devnet & mainnet
+
+Check out our full open-source repo & turnkey handover docs: https://github.com/your-org/panta-nectar-engine
+
+#Solana #DeFi #Web3

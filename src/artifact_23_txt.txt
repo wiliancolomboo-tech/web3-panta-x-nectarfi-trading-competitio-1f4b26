@@ -1,0 +1,15 @@
++-----------------------------------+-------------------------------------------------------------+
+| OPERATIONAL EVENT                 | MITIGATION / REMEDIATION PROCEDURE                         |
++-----------------------------------+-------------------------------------------------------------+
+| RPC Rate Limit / Timeout          | Failover to secondary Helius/Triton RPC via clustered array |
+|                                   | in Keeper initialization config.                            |
+|                                   |                                                             |
+| Wash-Trading Volume Spike         | Operator can invoke parameter update before epoch seal,     |
+|                                   | tightening log-scale alpha coefficients on perps volume.    |
+|                                   |                                                             |
+| Keeper Key Compromise             | Authority multisig executes `set_keeper` reassigning signer |
+|                                   | to cold-storage hardware wallet or AWS KMS signer.          |
+|                                   |                                                             |
+| Unclaimed Epoch Rewards           | After 90 days grace, authority can reclaim dormant vault    |
+|                                   | balances via DAO multisig sweep proposal.                   |
++-----------------------------------+-------------------------------------------------------------+

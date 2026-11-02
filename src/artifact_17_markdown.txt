@@ -1,0 +1,17 @@
+1/3 🚨 Unveiling the Verifiable Trading Competition Protocol for @PantaExchange x @NectarFi on @Solana!
+
+Centralized spreadsheets and black-box competition leaderboards are over. 
+
+We built VESP: an end-to-end trustless competition engine powered by Anchor escrow vaults & Keccak Merkle proofs. ⚡👇
+
+2/3 🛠️ How it works:
+• PDA-locked competition reward vaults ensure prize integrity.
+• Anti-wash volume filters out circular churning & rewards real organic depth.
+• Millisecond ingestion daemon dispatches real-time @Discord updates & @Resend winning claim tickets.
+• Zero-loss cryptographic claims on-chain.
+
+3/3 🏆 100% open-source, Dockerized in 1 command, and tested with rigorous smart contract edge-case suites.
+
+Ready to supercharge volume and yield across Panta & NectarFi. 
+
+Github & Docs inside: https://github.com/panta-nectar-bounty/vesp-protocol 🚀🪐

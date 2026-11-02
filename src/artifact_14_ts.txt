@@ -1,0 +1,36 @@
+import express from "express";
+import client from "prom-client";
+
+const app = express();
+const registry = new client.Registry();
+client.collectDefaultMetrics({ register: registry });
+
+let ready = false;
+
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true, service: "nectarrank" });
+});
+
+app.get("/readyz", (_req, res) => {
+  if (!ready) return res.status(503).json({ ready: false });
+  res.json({ ready: true });
+});
+
+app.get("/metrics", async (_req, res) => {
+  res.set("Content-Type", registry.contentType);
+  res.end(await registry.metrics());
+});
+
+app.get("/v1/competitions/:id", async (req, res) => {
+  // Replace with repository lookup in deployment.
+  res.json({
+    id: req.params.id,
+    source: "solana",
+    status: "active",
+  });
+});
+
+app.listen(Number(process.env.PORT ?? 8080), () => {
+  ready = true;
+  console.log("NectarRank API listening");
+});

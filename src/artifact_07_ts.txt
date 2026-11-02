@@ -1,0 +1,68 @@
+import { createHash } from "node:crypto";
+
+export type Trade = {
+  trader: string;
+  market: string;
+  executedAt: number;
+  notional: bigint;
+  pnl: bigint;
+  fee: bigint;
+};
+
+export type ScoreResult = {
+  score: bigint;
+  volume: bigint;
+  pnl: bigint;
+  nonce: bigint;
+};
+
+export function scoreTrades(
+  trades: Trade[],
+  competitionStart: number,
+  competitionEnd: number,
+  nonce: bigint,
+): ScoreResult {
+  if (competitionStart >= competitionEnd) {
+    throw new Error("invalid competition window");
+  }
+
+  const valid = trades
+    .filter(t => t.executedAt >= competitionStart && t.executedAt <= competitionEnd)
+    .sort((a, b) =>
+      a.executedAt - b.executedAt ||
+      a.market.localeCompare(b.market) ||
+      a.notional < b.notional ? -1 : 1
+    );
+
+  let volume = 0n;
+  let pnl = 0n;
+
+  for (const trade of valid) {
+    if (trade.notional < 0n || trade.pnl < -10_000_000_000_000n) {
+      throw new Error("invalid trade values");
+    }
+    volume += trade.notional;
+    pnl += trade.pnl - trade.fee;
+  }
+
+  // Score = volume component + positive PnL component.
+  // All calculations are integer-only and deterministic.
+  const score = volume / 1_000n + (pnl > 0n ? pnl : 0n) / 100n;
+
+  return { score, volume, pnl, nonce };
+}
+
+export function attestationDigest(
+  competition: string,
+  trader: string,
+  result: ScoreResult,
+): Buffer {
+  return createHash("sha256")
+    .update(Buffer.from(competition, "base58"))
+    .update(Buffer.from(trader, "base58"))
+    .update(result.score.toString())
+    .update(result.volume.toString())
+    .update(result.pnl.toString())
+    .update(result.nonce.toString())
+    .digest();
+}

@@ -1,14 +1,20 @@
-1/3 🏆 Introducing the Panta x @NectarFi Competition Engine: The first 100% non-custodial, yield-bearing trading tournament protocol on @Solana. 
+1/4 🚀 Introducing the Panta x @NectarFi On-Chain Trading Competition Protocol on @Solana!
 
-Gone are the days of manual spreadsheets, multi-sig prize delays, and sybil wash-trading. Built for elite execution. 🧵👇
+Trading contests are broken: manual spreadsheets, wash-trading abuse, and opaque reward payouts. 
 
-2/3 ⚡ How it works:
-1️⃣ Real-time PnL & Volume streaming directly through @Panta DEX routing.
-2️⃣ Staked collateral auto-generates yield via @NectarFi dynamic vaults while the competition runs.
-3️⃣ Cryptographic Merkle-proof prize claiming + automated @resend receipts & Discord webhooks!
+We engineered an on-chain, high-frequency competition engine. 🧵👇
 
-3/3 🛡️ Zero admin custody. Zero idle capital. True decentralized execution on Solana. 
+2/4 ⚡ Built natively with Anchor & Solana PDAs:
+• Deterministic On-Chain Scorer: Combines realized PnL + time-weighted volume to mathematically eliminate Sybil wash-trading.
+• Cryptographic Merkle Root Settlement: Zero-latency, non-custodial prize claiming directly from vault PDAs.
 
-Read our full open-source repo, test suite, and turnkey deployment runbook: https://github.com/panta-nectar-bounty/panta-nectar-competition 🚀
+3/4 🛡️ Enterprise Ops Out of the Box:
+• Off-chain keeper engine streaming live Solana logs.
+• Instant telemetry with @resend for winner emails & Slack/Discord alerts for live rank flips.
+• 100% test coverage with 1-click Dockerization.
 
-#Solana #DeFi #AlgorithmicTrading #Web3
+4/4 Built for the @Panta_Trade x @NectarFi ecosystem. Open-source, production-ready, and deployed on Solana!
+
+Check out the architecture, code, and live demo below ⬇️
+https://github.com/panta-nectar-bounty/trading-competition-engine
+#Solana #DeFi #SolanaBounty

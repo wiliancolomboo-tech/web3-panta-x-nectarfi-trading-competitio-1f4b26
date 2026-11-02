@@ -1,0 +1,6 @@
+SOLANA_RPC_URL=https://api.devnet.solana.com
+ARENA_PROGRAM_ID=Arena11111111111111111111111111111111111111
+ORACLE_SECRET_KEY=[1,2,3...] # Array of bytes for authorized crank
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+RESEND_API_KEY=re_123456789
+PORT=8080

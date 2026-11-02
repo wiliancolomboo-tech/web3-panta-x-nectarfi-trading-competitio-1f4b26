@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  competition-keeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
+      - COMPETITION_PUBKEY=${COMPETITION_PUBKEY}
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

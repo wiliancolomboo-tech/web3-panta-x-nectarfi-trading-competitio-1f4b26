@@ -1,0 +1,21 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+panta_nectar_competition = "PNTANCtre4zK3w51239999999999999999999999999"
+
+[programs.devnet]
+panta_nectar_competition = "PNTANCtre4zK3w51239999999999999999999999999"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run test"

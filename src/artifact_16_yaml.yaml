@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nectar
+      POSTGRES_PASSWORD: nectar
+      POSTGRES_DB: nectar_rank
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nectar -d nectar_rank"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    command: ["node", "dist/apps/api/src/server.js"]
+
+  worker:
+    build: .
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "dist/apps/worker/src/worker.js"]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

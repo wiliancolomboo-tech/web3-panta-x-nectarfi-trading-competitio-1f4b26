@@ -1,0 +1,71 @@
+import { createHash } from "node:crypto";
+
+export type Trade = {
+  eventId: string;
+  wallet: string;
+  notionalUsdMicros: bigint;
+  realizedPnlUsdMicros: bigint;
+  timestamp: number;
+};
+
+export type Score = {
+  wallet: string;
+  tradeCount: number;
+  volumeUsdMicros: bigint;
+  score: bigint;
+};
+
+export function scoreTrade(
+  trade: Trade,
+  volumeMultiplier = 1n,
+  pnlMultiplier = 0n,
+): bigint {
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trade.wallet)) {
+    throw new Error("invalid Solana wallet");
+  }
+  if (trade.notionalUsdMicros < 0n) {
+    throw new Error("negative notional");
+  }
+
+  const pnl = trade.realizedPnlUsdMicros > 0n
+    ? trade.realizedPnlUsdMicros
+    : 0n;
+
+  return trade.notionalUsdMicros * volumeMultiplier + pnl * pnlMultiplier;
+}
+
+export function aggregate(trades: Trade[]): Score[] {
+  const map = new Map<string, Score>();
+
+  for (const trade of trades) {
+    const prior = map.get(trade.wallet) ?? {
+      wallet: trade.wallet,
+      tradeCount: 0,
+      volumeUsdMicros: 0n,
+      score: 0n,
+    };
+
+    prior.tradeCount += 1;
+    prior.volumeUsdMicros += trade.notionalUsdMicros;
+    prior.score += scoreTrade(trade);
+    map.set(trade.wallet, prior);
+  }
+
+  return [...map.values()].sort((a, b) => {
+    if (a.score === b.score) return a.wallet.localeCompare(b.wallet);
+    return a.score > b.score ? -1 : 1;
+  });
+}
+
+export function commitment(scores: Score[], epoch: number): Buffer {
+  const leaves = scores
+    .map(
+      x =>
+        `${x.wallet}|${x.tradeCount}|${x.volumeUsdMicros}|${x.score}|${epoch}`,
+    )
+    .sort();
+
+  return createHash("sha256")
+    .update(leaves.join("\n"))
+    .digest();
+}

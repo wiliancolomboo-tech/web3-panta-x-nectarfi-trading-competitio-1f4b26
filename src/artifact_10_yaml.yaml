@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  arena-worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: panta-nectar-arena-oracle
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SOLANA_RPC_URL=https://api.devnet.solana.com
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
+      - ARENA_PROGRAM_ID=PArtNd8zV8hZ7mNzg6a7Z4R2R2jL4s9xHqB7d1vKpUm
+      - COMPETITION_ID=101
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - ADMIN_ALERT_EMAIL=${ADMIN_ALERT_EMAIL}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

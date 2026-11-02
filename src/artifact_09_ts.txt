@@ -1,0 +1,45 @@
+export type NectarTrade = {
+  id: string;
+  wallet: string;
+  notionalUsdMicros: string;
+  realizedPnlUsdMicros: string;
+  timestamp: number;
+  signature?: string;
+};
+
+export interface NectarFiAdapter {
+  listTrades(fromUnix: number, toUnix: number): Promise<NectarTrade[]>;
+}
+
+export class HttpNectarFiAdapter implements NectarFiAdapter {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string,
+  ) {}
+
+  async listTrades(fromUnix: number, toUnix: number): Promise<NectarTrade[]> {
+    const url = new URL("/v1/trades", this.baseUrl);
+    url.searchParams.set("from", String(fromUnix));
+    url.searchParams.set("to", String(toUnix));
+
+    const response = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${this.apiKey}`,
+        accept: "application/json",
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`NectarFi returned HTTP ${response.status}`);
+    }
+
+    const body = await response.json() as { trades?: NectarTrade[] };
+
+    if (!Array.isArray(body.trades)) {
+      throw new Error("NectarFi response missing trades array");
+    }
+
+    return body.trades;
+  }
+}

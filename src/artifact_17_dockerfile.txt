@@ -1,0 +1,20 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /usr/src/app
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/tsconfig.json ./
+COPY client/src ./src
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+
+COPY client/package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /usr/src/app/dist ./dist
+
+USER node
+CMD ["node", "dist/keeper.js"]

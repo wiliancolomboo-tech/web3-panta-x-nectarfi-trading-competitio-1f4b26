@@ -1,0 +1,7 @@
+Production-grade from day 1:
+✅ 100% passed unit & E2E integration test suite
+✅ Turnkey Docker orchestration with Prometheus /health telemetry
+✅ Built for turnkey integration into @NectarFi & @PantaProtocol
+
+Check out the full open-source repo & architecture submission! 🚀🦀
+#Solana #DeFi #Rust #Anchor

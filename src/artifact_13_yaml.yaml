@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  competition-crank:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: panta-nectar-crank
+    restart: unless-stopped
+    environment:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PNECT11111111111111111111111111111111111111
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

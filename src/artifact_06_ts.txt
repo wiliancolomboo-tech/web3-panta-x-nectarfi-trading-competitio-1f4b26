@@ -1,0 +1,62 @@
+import { createHash } from "node:crypto";
+
+export type Trade = {
+  trader: string;
+  realizedPnlMicros: bigint;
+  volumeUsdMicros: bigint;
+  timestamp: number;
+};
+
+export type ScoreResult = {
+  trader: string;
+  score: bigint;
+  volumeUsdMicros: bigint;
+  attestationId: string;
+};
+
+export function calculateScore(trades: Trade[]): ScoreResult[] {
+  const grouped = new Map<string, { pnl: bigint; volume: bigint }>();
+
+  for (const trade of trades) {
+    if (!trade.trader) throw new Error("missing trader");
+    if (trade.volumeUsdMicros < 0n) throw new Error("negative volume");
+    if (!Number.isSafeInteger(trade.timestamp)) {
+      throw new Error("invalid timestamp");
+    }
+
+    const current = grouped.get(trade.trader) ?? {
+      pnl: 0n,
+      volume: 0n
+    };
+
+    current.pnl += trade.realizedPnlMicros;
+    current.volume += trade.volumeUsdMicros;
+    grouped.set(trade.trader, current);
+  }
+
+  return [...grouped.entries()]
+    .map(([trader, value]) => {
+      const canonical = [
+        trader,
+        value.pnl.toString(),
+        value.volume.toString()
+      ].join("|");
+
+      const attestationId = createHash("sha256")
+        .update(canonical)
+        .digest("hex")
+        .slice(0, 64);
+
+      return {
+        trader,
+        score: value.pnl,
+        volumeUsdMicros: value.volume,
+        attestationId
+      };
+    })
+    .sort((a, b) => {
+      if (a.score > b.score) return -1;
+      if (a.score < b.score) return 1;
+      return a.trader.localeCompare(b.trader);
+    });
+}

@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  arena-keeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PANTAnEcTAR11111111111111111111111111111111
+      - KEEPER_KEYPAIR_PATH=/secrets/keeper.json
+      - EPOCH_ID=1
+      - DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+      - RESEND_API_KEY=re_enterprise_live_key
+      - OPS_EMAIL=ops@nectarfi.io
+      - PORT=8080
+    volumes:
+      - ./secrets:/secrets:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,12 @@
+flowchart LR
+    P[Panta/NectarFi API or webhook] --> W[Competition Worker]
+    W --> DB[(PostgreSQL)]
+    W --> S[Score Engine]
+    S --> O[Oracle Signer]
+    O --> RPC[Solana RPC]
+    RPC --> SC[NectarRank Program]
+    W --> SL[Slack/Discord Webhook]
+    W --> RE[Resend API]
+    API[REST API] --> DB
+    API --> RPC
+    PROM[Prometheus] --> API

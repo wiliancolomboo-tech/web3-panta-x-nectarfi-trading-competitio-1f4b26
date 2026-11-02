@@ -1,0 +1,4 @@
+trade_score =
+    floor(notional_usd * volume_multiplier)
+    + floor(realized_pnl_usd * pnl_multiplier)
+    - fees_penalty

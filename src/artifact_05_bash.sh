@@ -1,16 +1,20 @@
-# 1. Clone & install dependencies
-git clone https://github.com/panta-nectar-bounty/panta-nectar-competition.git
-cd panta-nectar-competition
+# 1. Clone repository and install dependencies
+git clone https://github.com/panta-nectar-arena/competition-core.git
+cd competition-core
 npm install -g @coral-xyz/anchor-cli
-npm install
+yarn install
 
-# 2. Build program binary
+# 2. Build Solana Anchor Program
 anchor build
 
-# 3. Deploy to Solana Devnet
-solana config set --url https://api.devnet.solana.com
-solana airdrop 2
+# 3. Synchronize Program ID and Deploy to Solana Devnet / Mainnet
+solana address -k target/deploy/panta_nectar_arena-keypair.json
+# Ensure Anchor.toml and declare_id!() match the output address
 anchor deploy --provider.cluster devnet
 
-# 4. Run test suite
-anchor test
+# 4. Initialize Competition Vault
+yarn ts-node scripts/init-competition.ts \
+  --competition-id 101 \
+  --prize-amount 10000 \
+  --metric hybrid \
+  --duration-days 7

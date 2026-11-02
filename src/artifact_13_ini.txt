@@ -1,0 +1,14 @@
+# Solana Network Configuration
+SOLANA_RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=PnTCmp1111111111111111111111111111111111111
+ORACLE_KEYPAIR_PATH=/app/credentials/oracle-keypair.json
+
+# Enterprise Integration Channels
+RESEND_API_KEY=re_123456789_abcdefghijklmnopqrstuvwxyz
+ALERT_SENDER_EMAIL=leaderboard@panta-nectar.trade
+DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+
+# Health & Telemetry
+PORT=8080
+LOG_LEVEL=info

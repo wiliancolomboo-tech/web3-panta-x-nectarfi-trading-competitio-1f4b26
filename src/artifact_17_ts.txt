@@ -1,0 +1,35 @@
+import Fastify from "fastify";
+
+const app = Fastify({ logger: true });
+
+app.get("/health/live", async () => ({
+  status: "ok",
+  service: "nectar-rank",
+}));
+
+app.get("/health/ready", async (_request, reply) => {
+  try {
+    // Replace with a real pooled database query.
+    return {
+      status: "ready",
+      database: "reachable",
+      solanaRpc: process.env.SOLANA_RPC_URL,
+    };
+  } catch {
+    return reply.code(503).send({ status: "not_ready" });
+  }
+});
+
+app.get("/metrics", async () => {
+  return [
+    "# HELP nectar_rank_up Service availability",
+    "# TYPE nectar_rank_up gauge",
+    "nectar_rank_up 1",
+    "",
+  ].join("\n");
+});
+
+await app.listen({
+  host: "0.0.0.0",
+  port: Number(process.env.PORT ?? 8080),
+});

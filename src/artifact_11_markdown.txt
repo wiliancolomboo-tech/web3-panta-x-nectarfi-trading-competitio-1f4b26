@@ -1,0 +1,16 @@
+1/4 ⚡️ Supercharging @Solana DeFi competition infrastructure with @Panta & @NectarFi!
+
+Introducing the Panta x NectarFi Arena: The first fully trustless, on-chain trading competition engine that connects Panta routing volume & Nectar dynamic vault strategies.
+
+Here is how we built it 🧵👇
+
+2/4 🛡️ No more centralized spreadsheets or manual drops.
+The Arena features:
+• Non-custodial SPL PDA prize vaults with deterministic tier payouts
+• Cryptographic Ed25519 trade attestations
+• Sub-second Discord/Slack feeds + @resend transactional alerts for real-time gamification
+
+3/4 🛠️ Zero-downtime architecture:
+Built on @coral_xyz Anchor with strict checked math, PDA seed isolation, and a turnkey multi-stage Docker keeper engine ready for instant deployment on Mainnet-Beta.
+
+Check out the full open-source repo & QA suite: https://github.com/nectar-fi/panta-arena-engine 🚀🔥

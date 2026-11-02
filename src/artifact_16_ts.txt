@@ -1,0 +1,15 @@
+it("rejects decreasing scores", async () => {
+  await program.methods
+    .submitScore(new BN(1), new BN(100), new BN(100), new BN(1))
+    .accounts(accounts)
+    .signers([oracle])
+    .rpc();
+
+  await expect(
+    program.methods
+      .submitScore(new BN(2), new BN(99), new BN(100), new BN(1))
+      .accounts(accounts)
+      .signers([oracle])
+      .rpc()
+  ).rejects.toThrow("ScoreDecrease");
+});

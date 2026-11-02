@@ -1,0 +1,8 @@
+services/arena-keeper/
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── config.rs / config.ts
+│   ├── notifications.ts
+│   ├── scorer.ts
+│   └── worker.ts
