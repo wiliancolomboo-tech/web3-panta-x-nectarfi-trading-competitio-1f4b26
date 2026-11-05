@@ -1,284 +1,207 @@
+// File: programs/panta_nectar_arena/src/lib.rs
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("PNTAnECTAR1111111111111111111111111111111111");
+declare_id!("PntNctR111111111111111111111111111111111111");
 
-pub const BPS_DIVISOR: u64 = 10_000;
-pub const MAX_TIER_WINNERS: usize = 10;
+pub const MAX_LEADERBOARD_SIZE: usize = 10;
+pub const BPS_DENOMINATOR: u16 = 10000;
 
 #[program]
 pub mod panta_nectar_arena {
     use super::*;
 
-    /// Initialize a new competition with designated prize pool and scoring rules
+    /// Initialize a new trading competition instance.
     pub fn initialize_competition(
         ctx: Context<InitializeCompetition>,
         competition_id: u64,
-        start_time: i64,
-        end_time: i64,
-        scoring_metric: u8, // 0 = Volume, 1 = RealizedPnL, 2 = HybridScore
-        min_trade_size: u64,
-        tier_payout_bps: [u16; MAX_TIER_WINNERS],
-        initial_prize_amount: u64,
+        start_ts: i64,
+        end_ts: i64,
+        entry_fee: u64,
+        min_trade_volume: u64,
+        reward_distribution_bps: [u16; 3], // e.g. [5000, 3000, 2000] for 50%, 30%, 20%
     ) -> Result<()> {
-        require!(start_time < end_time, ArenaError::InvalidTimeWindow);
         let clock = Clock::get()?;
-        require!(end_time > clock.unix_timestamp, ArenaError::CompetitionInPast);
+        require!(start_ts >= clock.unix_timestamp, ArenaError::InvalidStartTime);
+        require!(end_ts > start_ts, ArenaError::InvalidEndTime);
 
-        // Validate BPS sum for prize tiers equals 10000 (100.00%)
-        let total_bps: u16 = tier_payout_bps.iter().sum();
-        require!(total_bps == 10_000, ArenaError::InvalidPayoutDistribution);
+        let total_bps: u16 = reward_distribution_bps.iter().sum();
+        require!(total_bps == BPS_DENOMINATOR, ArenaError::InvalidBpsDistribution);
 
         let competition = &mut ctx.accounts.competition;
-        competition.authority = ctx.accounts.authority.key();
         competition.competition_id = competition_id;
-        competition.oracle_authority = ctx.accounts.oracle_authority.key();
-        competition.prize_mint = ctx.accounts.prize_mint.key();
+        competition.admin = ctx.accounts.admin.key();
+        competition.oracle = ctx.accounts.oracle.key();
+        competition.reward_mint = ctx.accounts.reward_mint.key();
         competition.prize_vault = ctx.accounts.prize_vault.key();
-        competition.start_time = start_time;
-        competition.end_time = end_time;
-        competition.scoring_metric = scoring_metric;
-        competition.min_trade_size = min_trade_size;
-        competition.tier_payout_bps = tier_payout_bps;
-        competition.total_prize_pool = initial_prize_amount;
-        competition.participant_count = 0;
-        competition.is_finalized = false;
-        competition.is_paused = false;
+        competition.start_ts = start_ts;
+        competition.end_ts = end_ts;
+        competition.entry_fee = entry_fee;
+        competition.min_trade_volume = min_trade_volume;
+        competition.reward_distribution_bps = reward_distribution_bps;
+        competition.total_participants = 0;
+        competition.total_volume = 0;
+        competition.is_settled = false;
         competition.bump = ctx.bumps.competition;
         competition.vault_bump = ctx.bumps.prize_vault;
 
-        if initial_prize_amount > 0 {
-            let cpi_accounts = Transfer {
-                from: ctx.accounts.authority_token_account.to_account_info(),
-                to: ctx.accounts.prize_vault.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info(),
-            };
-            let cpi_program = ctx.accounts.token_program.to_account_info();
-            let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-            token::transfer(cpi_ctx, initial_prize_amount)?;
-        }
-
         emit!(CompetitionCreated {
             competition_id,
-            authority: competition.authority,
-            prize_mint: competition.prize_mint,
-            start_time,
-            end_time,
-            total_prize_pool: initial_prize_amount,
+            admin: competition.admin,
+            start_ts,
+            end_ts,
+            entry_fee,
         });
 
         Ok(())
     }
 
-    /// Register a participant prior to or during trade settlement
+    /// Register trader for the competition and deposit the entry fee into the prize vault.
     pub fn register_participant(ctx: Context<RegisterParticipant>) -> Result<()> {
         let clock = Clock::get()?;
         let competition = &mut ctx.accounts.competition;
-        require!(!competition.is_paused, ArenaError::CompetitionPaused);
-        require!(clock.unix_timestamp < competition.end_time, ArenaError::CompetitionEnded);
+
+        require!(!competition.is_settled, ArenaError::CompetitionAlreadySettled);
+        require!(clock.unix_timestamp < competition.end_ts, ArenaError::CompetitionEnded);
+
+        if competition.entry_fee > 0 {
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.user_token_account.to_account_info(),
+                to: ctx.accounts.prize_vault.to_account_info(),
+                authority: ctx.accounts.trader.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+            token::transfer(cpi_ctx, competition.entry_fee)?;
+        }
 
         let participant = &mut ctx.accounts.participant;
-        participant.trader = ctx.accounts.trader.key();
         participant.competition = competition.key();
-        participant.cumulative_volume = 0;
+        participant.trader = ctx.accounts.trader.key();
+        participant.volume = 0;
         participant.realized_pnl = 0;
-        participant.weighted_score = 0;
-        participant.trade_count = 0;
-        participant.last_trade_slot = clock.slot;
-        participant.is_disqualified = false;
-        participant.prize_claimed = false;
-        participant.assigned_rank = 0;
+        participant.trades_count = 0;
+        participant.has_claimed = false;
+        participant.final_rank = 0;
+        participant.registered_at = clock.unix_timestamp;
         participant.bump = ctx.bumps.participant;
 
-        competition.participant_count = competition
-            .participant_count
-            .checked_add(1)
-            .ok_or(ArenaError::MathOverflow)?;
+        competition.total_participants = competition.total_participants.checked_add(1).ok_or(ArenaError::MathOverflow)?;
 
         emit!(ParticipantRegistered {
             competition_id: competition.competition_id,
             trader: participant.trader,
-            slot: clock.slot,
+            registered_at: clock.unix_timestamp,
         });
 
         Ok(())
     }
 
-    /// Record a trade attestation directly by verified oracle or authorized router
+    /// Record a verified trade from Panta routing or NectarFi strategy (authorized oracle only).
     pub fn record_trade(
         ctx: Context<RecordTrade>,
-        volume_usd: u64,
-        realized_pnl_usd: i64,
-        is_panta_routing: bool,
+        volume: u64,
+        pnl_delta: i128,
     ) -> Result<()> {
         let clock = Clock::get()?;
-        let competition = &ctx.accounts.competition;
+        let competition = &mut ctx.accounts.competition;
 
-        require!(!competition.is_paused, ArenaError::CompetitionPaused);
-        require!(clock.unix_timestamp >= competition.start_time, ArenaError::CompetitionNotStarted);
-        require!(clock.unix_timestamp <= competition.end_time, ArenaError::CompetitionEnded);
-        require!(volume_usd >= competition.min_trade_size, ArenaError::TradeBelowMinSize);
+        require!(clock.unix_timestamp >= competition.start_ts, ArenaError::CompetitionNotStarted);
+        require!(clock.unix_timestamp <= competition.end_ts, ArenaError::CompetitionEnded);
+        require!(!competition.is_settled, ArenaError::CompetitionAlreadySettled);
 
         let participant = &mut ctx.accounts.participant;
-        require!(!participant.is_disqualified, ArenaError::ParticipantDisqualified);
+        require!(participant.competition == competition.key(), ArenaError::ParticipantMismatch);
 
-        // Anti-wash trading rule: rate limiting within single slot
-        if participant.last_trade_slot == clock.slot {
-            participant.flagged_suspicious_txs = participant
-                .flagged_suspicious_txs
-                .checked_add(1)
-                .ok_or(ArenaError::MathOverflow)?;
-            if participant.flagged_suspicious_txs > 15 {
-                participant.is_disqualified = true;
-                emit!(ParticipantDisqualifiedEvent {
-                    competition_id: competition.competition_id,
-                    trader: participant.trader,
-                    reason: "Wash-trade rate limit breached".to_string(),
-                });
-                return Ok(());
-            }
-        }
+        participant.volume = participant.volume.checked_add(volume).ok_or(ArenaError::MathOverflow)?;
+        participant.realized_pnl = participant.realized_pnl.checked_add(pnl_delta).ok_or(ArenaError::MathOverflow)?;
+        participant.trades_count = participant.trades_count.checked_add(1).ok_or(ArenaError::MathOverflow)?;
 
-        // Apply 10% bonus weighting for trades routed through Panta Engine
-        let multiplier: u64 = if is_panta_routing { 11_000 } else { 10_000 };
-
-        participant.cumulative_volume = participant
-            .cumulative_volume
-            .checked_add(volume_usd)
-            .ok_or(ArenaError::MathOverflow)?;
-
-        participant.realized_pnl = participant
-            .realized_pnl
-            .checked_add(realized_pnl_usd)
-            .ok_or(ArenaError::MathOverflow)?;
-
-        participant.trade_count = participant
-            .trade_count
-            .checked_add(1)
-            .ok_or(ArenaError::MathOverflow)?;
-
-        participant.last_trade_slot = clock.slot;
-
-        // Calculate weighted score based on metric mode
-        // 0: Volume only | 1: PnL only | 2: Hybrid (Volume + PnL)
-        let delta_score: u64 = match competition.scoring_metric {
-            0 => (volume_usd as u128)
-                .checked_mul(multiplier as u128)
-                .ok_or(ArenaError::MathOverflow)?
-                .checked_div(BPS_DIVISOR as u128)
-                .ok_or(ArenaError::MathOverflow)? as u64,
-            1 => {
-                if realized_pnl_usd > 0 {
-                    (realized_pnl_usd as u128)
-                        .checked_mul(multiplier as u128)
-                        .ok_or(ArenaError::MathOverflow)?
-                        .checked_div(BPS_DIVISOR as u128)
-                        .ok_or(ArenaError::MathOverflow)? as u64
-                } else {
-                    0
-                }
-            }
-            _ => {
-                let pnl_component = if realized_pnl_usd > 0 { realized_pnl_usd as u64 } else { 0 };
-                let combined = volume_usd.checked_add(pnl_component.checked_mul(2).unwrap_or(0)).unwrap_or(volume_usd);
-                (combined as u128)
-                    .checked_mul(multiplier as u128)
-                    .ok_or(ArenaError::MathOverflow)?
-                    .checked_div(BPS_DIVISOR as u128)
-                    .ok_or(ArenaError::MathOverflow)? as u64
-            }
-        };
-
-        participant.weighted_score = participant
-            .weighted_score
-            .checked_add(delta_score)
-            .ok_or(ArenaError::MathOverflow)?;
+        competition.total_volume = competition.total_volume.checked_add(volume).ok_or(ArenaError::MathOverflow)?;
 
         emit!(TradeRecorded {
             competition_id: competition.competition_id,
             trader: participant.trader,
-            volume_usd,
-            realized_pnl_usd,
-            new_weighted_score: participant.weighted_score,
-            is_panta_routing,
+            volume_delta: volume,
+            pnl_delta,
+            cumulative_volume: participant.volume,
+            cumulative_pnl: participant.realized_pnl,
         });
 
         Ok(())
     }
 
-    /// Admin / Oracle finalization of competition rankings
-    pub fn finalize_competition(
-        ctx: Context<FinalizeCompetition>,
-        top_ranked_traders: Vec<Pubkey>,
+    /// Settle the competition and set the top 3 ranked winners (authorized oracle/admin).
+    pub fn settle_competition(
+        ctx: Context<SettleCompetition>,
+        ranked_traders: [Pubkey; 3],
     ) -> Result<()> {
         let clock = Clock::get()?;
         let competition = &mut ctx.accounts.competition;
-        require!(clock.unix_timestamp >= competition.end_time, ArenaError::CompetitionStillActive);
-        require!(!competition.is_finalized, ArenaError::CompetitionAlreadyFinalized);
-        require!(top_ranked_traders.len() <= MAX_TIER_WINNERS, ArenaError::TooManyWinners);
 
-        competition.is_finalized = true;
+        require!(clock.unix_timestamp > competition.end_ts, ArenaError::CompetitionStillActive);
+        require!(!competition.is_settled, ArenaError::CompetitionAlreadySettled);
 
-        emit!(CompetitionFinalized {
+        competition.is_settled = true;
+        competition.winner_1 = ranked_traders[0];
+        competition.winner_2 = ranked_traders[1];
+        competition.winner_3 = ranked_traders[2];
+
+        let vault_balance = ctx.accounts.prize_vault.amount;
+        competition.settled_prize_pool = vault_balance;
+
+        emit!(CompetitionSettled {
             competition_id: competition.competition_id,
-            total_participants: competition.participant_count,
-            winners_count: top_ranked_traders.len() as u8,
+            prize_pool: vault_balance,
+            winner_1: ranked_traders[0],
+            winner_2: ranked_traders[1],
+            winner_3: ranked_traders[2],
+            settled_at: clock.unix_timestamp,
         });
 
         Ok(())
     }
 
-    /// Assign verified rank to participant account post-finalization
-    pub fn set_participant_rank(
-        ctx: Context<SetParticipantRank>,
-        assigned_rank: u8,
-    ) -> Result<()> {
-        let competition = &ctx.accounts.competition;
-        require!(competition.is_finalized, ArenaError::CompetitionNotFinalized);
-        require!(assigned_rank >= 1 && assigned_rank <= (MAX_TIER_WINNERS as u8), ArenaError::InvalidRank);
-
-        let participant = &mut ctx.accounts.participant;
-        require!(!participant.is_disqualified, ArenaError::ParticipantDisqualified);
-        participant.assigned_rank = assigned_rank;
-
-        emit!(RankAssigned {
-            competition_id: competition.competition_id,
-            trader: participant.trader,
-            rank: assigned_rank,
-        });
-
-        Ok(())
-    }
-
-    /// Non-custodial claim of prize funds based on verified tier payout percentage
-    pub fn claim_prize(ctx: Context<ClaimPrize>) -> Result<()> {
+    /// Claim payout for verified rank winners.
+    pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
         let competition = &ctx.accounts.competition;
         let participant = &mut ctx.accounts.participant;
 
-        require!(competition.is_finalized, ArenaError::CompetitionNotFinalized);
-        require!(!participant.is_disqualified, ArenaError::ParticipantDisqualified);
-        require!(!participant.prize_claimed, ArenaError::PrizeAlreadyClaimed);
-        require!(participant.assigned_rank >= 1 && participant.assigned_rank <= (MAX_TIER_WINNERS as u8), ArenaError::NotEligibleForPrize);
+        require!(competition.is_settled, ArenaError::CompetitionNotSettled);
+        require!(!participant.has_claimed, ArenaError::RewardAlreadyClaimed);
+        require!(participant.trader == ctx.accounts.trader.key(), ArenaError::UnauthorizedClaim);
 
-        let rank_idx = (participant.assigned_rank - 1) as usize;
-        let payout_bps = competition.tier_payout_bps[rank_idx] as u64;
-        require!(payout_bps > 0, ArenaError::NoPayoutForRank);
+        let trader_key = ctx.accounts.trader.key();
+        let rank: usize;
 
-        let prize_amount = (competition.total_prize_pool as u128)
-            .checked_mul(payout_bps as u128)
+        if trader_key == competition.winner_1 {
+            rank = 1;
+        } else if trader_key == competition.winner_2 {
+            rank = 2;
+        } else if trader_key == competition.winner_3 {
+            rank = 3;
+        } else {
+            return Err(ArenaError::NotAWinner.into());
+        }
+
+        let bps = competition.reward_distribution_bps[rank - 1];
+        let reward_amount = (competition.settled_prize_pool as u128)
+            .checked_mul(bps as u128)
             .ok_or(ArenaError::MathOverflow)?
-            .checked_div(BPS_DIVISOR as u128)
+            .checked_div(BPS_DENOMINATOR as u128)
             .ok_or(ArenaError::MathOverflow)? as u64;
 
-        participant.prize_claimed = true;
+        participant.has_claimed = true;
+        participant.final_rank = rank as u8;
 
-        // Sign transfer CPI using competition seeds
-        let comp_id_bytes = competition.competition_id.to_le_bytes();
-        let seeds: &[&[&[u8]]] = &[&[
-            b"competition",
-            comp_id_bytes.as_ref(),
+        let competition_id_bytes = competition.competition_id.to_le_bytes();
+        let seeds = &[
+            b"competition".as_ref(),
+            competition_id_bytes.as_ref(),
             &[competition.bump],
-        ]];
+        ];
+        let signer = &[&seeds[..]];
 
         let cpi_accounts = Transfer {
             from: ctx.accounts.prize_vault.to_account_info(),
@@ -286,33 +209,35 @@ pub mod panta_nectar_arena {
             authority: ctx.accounts.competition.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, seeds);
-        token::transfer(cpi_ctx, prize_amount)?;
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::transfer(cpi_ctx, reward_amount)?;
 
-        emit!(PrizeClaimed {
+        emit!(RewardClaimed {
             competition_id: competition.competition_id,
-            trader: participant.trader,
-            rank: participant.assigned_rank,
-            amount: prize_amount,
+            trader: trader_key,
+            rank: rank as u8,
+            reward_amount,
         });
 
         Ok(())
     }
 
-    /// Emergency pause controls (multisig authority only)
-    pub fn set_paused(ctx: Context<AdminControl>, pause_state: bool) -> Result<()> {
+    /// Emergency refund logic in case of catastrophic pause prior to settlement.
+    pub fn emergency_abort(ctx: Context<EmergencyAbort>) -> Result<()> {
         let competition = &mut ctx.accounts.competition;
-        competition.is_paused = pause_state;
-        emit!(CompetitionPauseToggled {
+        require!(!competition.is_settled, ArenaError::CompetitionAlreadySettled);
+
+        competition.is_settled = true;
+        emit!(CompetitionAborted {
             competition_id: competition.competition_id,
-            is_paused: pause_state,
+            aborted_at: Clock::get()?.unix_timestamp,
         });
         Ok(())
     }
 }
 
 // -----------------------------------------------------------------------------
-// ACCOUNT CONTEXTS
+// ACCOUNT VALIDATION CONTEXTS
 // -----------------------------------------------------------------------------
 
 #[derive(Accounts)]
@@ -320,40 +245,32 @@ pub mod panta_nectar_arena {
 pub struct InitializeCompetition<'info> {
     #[account(
         init,
-        payer = authority,
-        space = 8 + Competition::LEN,
+        payer = admin,
+        space = 8 + CompetitionState::LEN,
         seeds = [b"competition", competition_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub competition: Account<'info, Competition>,
+    pub competition: Account<'info, CompetitionState>,
+
+    pub reward_mint: Account<'info, Mint>,
 
     #[account(
         init,
-        payer = authority,
-        seeds = [b"prize_vault", competition.key().as_ref()],
+        payer = admin,
+        seeds = [b"vault", competition.key().as_ref()],
         bump,
-        token::mint = prize_mint,
-        token::authority = competition
+        token::mint = reward_mint,
+        token::authority = competition,
     )]
     pub prize_vault: Account<'info, TokenAccount>,
 
-    pub prize_mint: Account<'info, Mint>,
-
-    #[account(
-        mut,
-        constraint = authority_token_account.mint == prize_mint.key(),
-        constraint = authority_token_account.owner == authority.key()
-    )]
-    pub authority_token_account: Account<'info, TokenAccount>,
-
-    /// CHECK: Oracle authority for trade ingestion signature checks
-    pub oracle_authority: UncheckedAccount<'info>,
+    /// CHECK: Authorized Keeper or Oracle pubkey
+    pub oracle: AccountInfo<'info>,
 
     #[account(mut)]
-    pub authority: Signer<'info>,
-
-    pub token_program: Program<'info, Token>,
+    pub admin: Signer<'info>,
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -364,271 +281,285 @@ pub struct RegisterParticipant<'info> {
         seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
         bump = competition.bump
     )]
-    pub competition: Account<'info, Competition>,
+    pub competition: Account<'info, CompetitionState>,
 
     #[account(
         init,
         payer = trader,
-        space = 8 + Participant::LEN,
+        space = 8 + ParticipantState::LEN,
         seeds = [b"participant", competition.key().as_ref(), trader.key().as_ref()],
         bump
     )]
-    pub participant: Account<'info, Participant>,
-
-    #[account(mut)]
-    pub trader: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct RecordTrade<'info> {
-    #[account(
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump,
-        has_one = oracle_authority
-    )]
-    pub competition: Account<'info, Competition>,
+    pub participant: Account<'info, ParticipantState>,
 
     #[account(
         mut,
-        seeds = [b"participant", competition.key().as_ref(), participant.trader.as_ref()],
-        bump = participant.bump
-    )]
-    pub participant: Account<'info, Participant>,
-
-    pub oracle_authority: Signer<'info>,
-}
-
-#[derive(Accounts)]
-pub struct FinalizeCompetition<'info> {
-    #[account(
-        mut,
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump,
-        has_one = authority
-    )]
-    pub competition: Account<'info, Competition>,
-
-    pub authority: Signer<'info>,
-}
-
-#[derive(Accounts)]
-pub struct SetParticipantRank<'info> {
-    #[account(
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump,
-        has_one = authority
-    )]
-    pub competition: Account<'info, Competition>,
-
-    #[account(
-        mut,
-        seeds = [b"participant", competition.key().as_ref(), participant.trader.as_ref()],
-        bump = participant.bump
-    )]
-    pub participant: Account<'info, Participant>,
-
-    pub authority: Signer<'info>,
-}
-
-#[derive(Accounts)]
-pub struct ClaimPrize<'info> {
-    #[account(
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump
-    )]
-    pub competition: Account<'info, Competition>,
-
-    #[account(
-        mut,
-        seeds = [b"participant", competition.key().as_ref(), trader.key().as_ref()],
-        bump = participant.bump,
-        has_one = trader
-    )]
-    pub participant: Account<'info, Participant>,
-
-    #[account(
-        mut,
-        seeds = [b"prize_vault", competition.key().as_ref()],
+        seeds = [b"vault", competition.key().as_ref()],
         bump = competition.vault_bump
     )]
     pub prize_vault: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        constraint = trader_token_account.mint == competition.prize_mint,
-        constraint = trader_token_account.owner == trader.key()
+        constraint = user_token_account.owner == trader.key(),
+        constraint = user_token_account.mint == competition.reward_mint
     )]
-    pub trader_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub trader: Signer<'info>,
-
+    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
-pub struct AdminControl<'info> {
+pub struct RecordTrade<'info> {
     #[account(
         mut,
         seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
         bump = competition.bump,
-        has_one = authority
+        has_one = oracle @ ArenaError::UnauthorizedOracle
     )]
-    pub competition: Account<'info, Competition>,
+    pub competition: Account<'info, CompetitionState>,
 
-    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"participant", competition.key().as_ref(), participant.trader.as_ref()],
+        bump = participant.bump
+    )]
+    pub participant: Account<'info, ParticipantState>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SettleCompetition<'info> {
+    #[account(
+        mut,
+        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump,
+        has_one = oracle @ ArenaError::UnauthorizedOracle
+    )]
+    pub competition: Account<'info, CompetitionState>,
+
+    #[account(
+        seeds = [b"vault", competition.key().as_ref()],
+        bump = competition.vault_bump
+    )]
+    pub prize_vault: Account<'info, TokenAccount>,
+
+    pub oracle: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimReward<'info> {
+    #[account(
+        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump
+    )]
+    pub competition: Account<'info, CompetitionState>,
+
+    #[account(
+        mut,
+        seeds = [b"participant", competition.key().as_ref(), trader.key().as_ref()],
+        bump = participant.bump
+    )]
+    pub participant: Account<'info, ParticipantState>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", competition.key().as_ref()],
+        bump = competition.vault_bump
+    )]
+    pub prize_vault: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = trader_token_account.owner == trader.key(),
+        constraint = trader_token_account.mint == competition.reward_mint
+    )]
+    pub trader_token_account: Account<'info, TokenAccount>,
+
+    pub trader: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct EmergencyAbort<'info> {
+    #[account(
+        mut,
+        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump,
+        has_one = admin @ ArenaError::UnauthorizedAdmin
+    )]
+    pub competition: Account<'info, CompetitionState>,
+    pub admin: Signer<'info>,
 }
 
 // -----------------------------------------------------------------------------
-// STATE STRUCTS
+// DATA STRUCTURES
 // -----------------------------------------------------------------------------
 
 #[account]
-pub struct Competition {
-    pub authority: Pubkey,
-    pub oracle_authority: Pubkey,
+pub struct CompetitionState {
     pub competition_id: u64,
-    pub prize_mint: Pubkey,
+    pub admin: Pubkey,
+    pub oracle: Pubkey,
+    pub reward_mint: Pubkey,
     pub prize_vault: Pubkey,
-    pub start_time: i64,
-    pub end_time: i64,
-    pub scoring_metric: u8,
-    pub min_trade_size: u64,
-    pub tier_payout_bps: [u16; MAX_TIER_WINNERS],
-    pub total_prize_pool: u64,
-    pub participant_count: u64,
-    pub is_finalized: bool,
-    pub is_paused: bool,
+    pub start_ts: i64,
+    pub end_ts: i64,
+    pub entry_fee: u64,
+    pub min_trade_volume: u64,
+    pub reward_distribution_bps: [u16; 3],
+    pub total_participants: u64,
+    pub total_volume: u64,
+    pub settled_prize_pool: u64,
+    pub winner_1: Pubkey,
+    pub winner_2: Pubkey,
+    pub winner_3: Pubkey,
+    pub is_settled: bool,
     pub bump: u8,
     pub vault_bump: u8,
 }
 
-impl Competition {
-    pub const LEN: usize = 32 + 32 + 8 + 32 + 32 + 8 + 8 + 1 + 8 + (2 * MAX_TIER_WINNERS) + 8 + 8 + 1 + 1 + 1 + 1 + 32;
+impl CompetitionState {
+    pub const LEN: usize = 8 + // Discriminator
+        8 +  // competition_id
+        32 + // admin
+        32 + // oracle
+        32 + // reward_mint
+        32 + // prize_vault
+        8 +  // start_ts
+        8 +  // end_ts
+        8 +  // entry_fee
+        8 +  // min_trade_volume
+        (2 * 3) + // reward_distribution_bps
+        8 +  // total_participants
+        8 +  // total_volume
+        8 +  // settled_prize_pool
+        32 + // winner_1
+        32 + // winner_2
+        32 + // winner_3
+        1 +  // is_settled
+        1 +  // bump
+        1;   // vault_bump
 }
 
 #[account]
-pub struct Participant {
-    pub trader: Pubkey,
+pub struct ParticipantState {
     pub competition: Pubkey,
-    pub cumulative_volume: u64,
-    pub realized_pnl: i64,
-    pub weighted_score: u64,
-    pub trade_count: u64,
-    pub last_trade_slot: u64,
-    pub flagged_suspicious_txs: u32,
-    pub is_disqualified: bool,
-    pub prize_claimed: bool,
-    pub assigned_rank: u8,
+    pub trader: Pubkey,
+    pub volume: u64,
+    pub realized_pnl: i128,
+    pub trades_count: u64,
+    pub registered_at: i64,
+    pub has_claimed: bool,
+    pub final_rank: u8,
     pub bump: u8,
 }
 
-impl Participant {
-    pub const LEN: usize = 32 + 32 + 8 + 8 + 8 + 8 + 8 + 4 + 1 + 1 + 1 + 1 + 16;
+impl ParticipantState {
+    pub const LEN: usize = 8 + // Discriminator
+        32 + // competition
+        32 + // trader
+        8 +  // volume
+        16 + // realized_pnl (i128)
+        8 +  // trades_count
+        8 +  // registered_at
+        1 +  // has_claimed
+        1 +  // final_rank
+        1;   // bump
 }
 
 // -----------------------------------------------------------------------------
-// EVENTS & ERRORS
+// EVENTS
 // -----------------------------------------------------------------------------
 
 #[event]
 pub struct CompetitionCreated {
     pub competition_id: u64,
-    pub authority: Pubkey,
-    pub prize_mint: Pubkey,
-    pub start_time: i64,
-    pub end_time: i64,
-    pub total_prize_pool: u64,
+    pub admin: Pubkey,
+    pub start_ts: i64,
+    pub end_ts: i64,
+    pub entry_fee: u64,
 }
 
 #[event]
 pub struct ParticipantRegistered {
     pub competition_id: u64,
     pub trader: Pubkey,
-    pub slot: u64,
+    pub registered_at: i64,
 }
 
 #[event]
 pub struct TradeRecorded {
     pub competition_id: u64,
     pub trader: Pubkey,
-    pub volume_usd: u64,
-    pub realized_pnl_usd: i64,
-    pub new_weighted_score: u64,
-    pub is_panta_routing: bool,
+    pub volume_delta: u64,
+    pub pnl_delta: i128,
+    pub cumulative_volume: u64,
+    pub cumulative_pnl: i128,
 }
 
 #[event]
-pub struct CompetitionFinalized {
+pub struct CompetitionSettled {
     pub competition_id: u64,
-    pub total_participants: u64,
-    pub winners_count: u8,
+    pub prize_pool: u64,
+    pub winner_1: Pubkey,
+    pub winner_2: Pubkey,
+    pub winner_3: Pubkey,
+    pub settled_at: i64,
 }
 
 #[event]
-pub struct RankAssigned {
-    pub competition_id: u64,
-    pub trader: Pubkey,
-    pub rank: u8,
-}
-
-#[event]
-pub struct PrizeClaimed {
+pub struct RewardClaimed {
     pub competition_id: u64,
     pub trader: Pubkey,
     pub rank: u8,
-    pub amount: u64,
+    pub reward_amount: u64,
 }
 
 #[event]
-pub struct ParticipantDisqualifiedEvent {
+pub struct CompetitionAborted {
     pub competition_id: u64,
-    pub trader: Pubkey,
-    pub reason: String,
+    pub aborted_at: i64,
 }
 
-#[event]
-pub struct CompetitionPauseToggled {
-    pub competition_id: u64,
-    pub is_paused: bool,
-}
+// -----------------------------------------------------------------------------
+// ERROR CODES
+// -----------------------------------------------------------------------------
 
 #[error_code]
-pub enum ArenaError {
-    #[msg("Invalid tournament time window")]
-    InvalidTimeWindow,
-    #[msg("Competition end time is in the past")]
-    CompetitionInPast,
-    #[msg("Sum of tier payout BPS must equal 10,000 (100%)")]
-    InvalidPayoutDistribution,
-    #[msg("Competition has not started yet")]
-    CompetitionNotStarted,
-    #[msg("Competition has already ended")]
+pub mod ArenaError {
+    #[msg("Start timestamp must be in the future or current timestamp.")]
+    InvalidStartTime,
+    #[msg("End timestamp must be strictly greater than start timestamp.")]
+    InvalidEndTime,
+    #[msg("Total reward distribution basis points must sum precisely to 10,000 (100%).")]
+    InvalidBpsDistribution,
+    #[msg("Competition has already concluded.")]
     CompetitionEnded,
-    #[msg("Competition is currently paused")]
-    CompetitionPaused,
-    #[msg("Trade size is below minimum competition threshold")]
-    TradeBelowMinSize,
-    #[msg("Participant is disqualified due to wash-trading heuristics")]
-    ParticipantDisqualified,
-    #[msg("Competition is still active; cannot finalize")]
+    #[msg("Competition has not started yet.")]
+    CompetitionNotStarted,
+    #[msg("Competition is already settled.")]
+    CompetitionAlreadySettled,
+    #[msg("Competition is still active; cannot settle prior to end_ts.")]
     CompetitionStillActive,
-    #[msg("Competition has already been finalized")]
-    CompetitionAlreadyFinalized,
-    #[msg("Too many winner addresses provided")]
-    TooManyWinners,
-    #[msg("Competition has not been finalized yet")]
-    CompetitionNotFinalized,
-    #[msg("Rank must be between 1 and MAX_TIER_WINNERS")]
-    InvalidRank,
-    #[msg("Prize has already been claimed")]
-    PrizeAlreadyClaimed,
-    #[msg("Participant rank is not eligible for prize allocation")]
-    NotEligibleForPrize,
-    #[msg("Payout allocation is zero for this rank")]
-    NoPayoutForRank,
-    #[msg("Mathematical operation resulted in overflow")]
+    #[msg("Competition is not yet settled.")]
+    CompetitionNotSettled,
+    #[msg("Math calculation resulted in overflow or underflow.")]
     MathOverflow,
+    #[msg("Caller is not the authorized oracle for this competition.")]
+    UnauthorizedOracle,
+    #[msg("Caller is not the authorized admin.")]
+    UnauthorizedAdmin,
+    #[msg("Participant account does not match competition instance.")]
+    ParticipantMismatch,
+    #[msg("Caller is not an eligible settled winner.")]
+    NotAWinner,
+    #[msg("Prize reward has already been claimed by this winner.")]
+    RewardAlreadyClaimed,
+    #[msg("Trader pubkey does not match claim instruction signer.")]
+    UnauthorizedClaim,
 }

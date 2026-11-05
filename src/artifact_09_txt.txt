@@ -1,3 +1,2 @@
-### Telemetry Healthcheck Endpoint
-
-Save as `services/healthcheck.ts`:
+2. **Emergency Competition Pause / Finalization:**
+   If wash trading or exploits are detected, the protocol authority can execute early epoch finality:

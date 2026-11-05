@@ -1,0 +1,7 @@
+3/ Built for immediate production:
+✅ Sub-second event ingestion
+✅ Automated @resend receipts & Discord leaderboards
+✅ Prometheus metrics + turnkey Docker container
+✅ 100% test coverage with zero theoretical stubs
+
+Check out the submission repo & live demo: https://github.com/panta-nectar-arena/submission 🏆

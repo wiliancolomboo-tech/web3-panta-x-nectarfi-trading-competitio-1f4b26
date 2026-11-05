@@ -1,23 +1,29 @@
 version: '3.8'
 
 services:
-  competition-keeper:
+  arena-keeper:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: unless-stopped
+    container_name: panta-nectar-keeper
+    restart: always
     environment:
+      - NODE_ENV=production
       - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
-      - COMPETITION_PUBKEY=${COMPETITION_PUBKEY}
-      - PORT=8080
+      - PROGRAM_ID=PntNctR111111111111111111111111111111111111
+      - ORACLE_SECRET_KEY=[1,2,3,...] # Base58/JSON byte array
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+      - RESEND_API_KEY=re_123456789
+      - PORT=3000
     ports:
-      - "8080:8080"
+      - "3000:3000"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"

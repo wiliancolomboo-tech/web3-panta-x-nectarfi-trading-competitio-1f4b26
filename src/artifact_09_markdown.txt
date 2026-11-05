@@ -1,24 +1,13 @@
-🧵 1/3
-Excited to unveil the Panta x @NectarFi Trading Tournament Engine on @solana! 🚀
+🧵 1/3: Announcing the Verifiable On-Chain Competition Settlement (VOCCS) Protocol for @PantaTrade x @NectarFi! 🏎️⚡️
 
-Traditional trading competitions are plagued by wash-trading, delayed payouts, and opaque spreadsheets. 
+Traditional crypto trading competitions are plagued by wash-trading loops & centralized database scoreboards. We fixed this permanently on @solana. 👇
 
-We engineered an on-chain, trust-minimized solution with sub-second Merkle claims:
-👇
+🧵 2/3: Under the hood:
+🔹 Non-custodial Anchor escrow: 100% guaranteed prize distribution with zero multi-sig delays.
+🔹 Dual-Metric Engine: Scores real volume + Sharpe-adjusted PnL, boosted by @NectarFi LP vault multipliers.
+🔹 Instant enterprise telemetry: Real-time Discord alerts & @resend transactional email claiming.
 
-🧵 2/3
-Under the hood:
-⚡️ Sybil-resistant dual-metric scoring (Volume + Realized Vault PnL)
-⚡️ Zero-knowledge-friendly Keccak-256 Merkle Settlement PDA
-⚡️ Instant, permissionless prize claims with re-entrancy defense
-⚡️ Real-time automated Discord/Slack feeds + @resend email alerts
+🧵 3/3: 100% open-source, battle-tested with full invariant test coverage, and turnkey Docker deployment ready for mainnet.
 
-No centralized claim scripts. No counterparty risk.
-
-🧵 3/3
-The entire repository is production-ready, featuring an Anchor 0.30 program, end-to-end TypeScript daemon, 100% test coverage, and turnkey Docker orchestration.
-
-Ready to scale protocol liquidity for @NectarFi & Panta.
-
-GitHub & Docs: https://github.com/panta-nectar/competition-engine
-#Solana #DeFi #Web3 #Rust
+Built for the next million on-chain traders on Solana. Check out the architecture and runbook below! 🚀
+🔗 https://github.com/panta-nectar-competition/core

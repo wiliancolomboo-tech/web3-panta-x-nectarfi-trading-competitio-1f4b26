@@ -1,10 +1,10 @@
-# Copy and configure production secrets
-cp .env.example .env
-nano .env
+# Set Solana Cluster
+solana config set --url https://api.mainnet-beta.solana.com
 
-# Launch self-healing container
-docker compose up -d --build
+# Build Deterministic Verifiable ELF
+anchor build --verifiable
 
-# Verify real-time logs & health
-docker compose logs -f
-curl http://localhost:8080/healthz
+# Deploy to Solana Mainnet
+solana program deploy \
+  --program-id target/deploy/panta_nectar_competition-keypair.json \
+  target/deploy/panta_nectar_competition.so

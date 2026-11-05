@@ -1,3 +1,1 @@
-### Dockerized Production Setup
-
-`Dockerfile`:
+### 6.3 Orchestration (`docker-compose.yml`)

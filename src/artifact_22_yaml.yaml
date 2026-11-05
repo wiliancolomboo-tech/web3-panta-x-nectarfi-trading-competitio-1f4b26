@@ -1,22 +1,23 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  competition-indexer:
+  orchestrator:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-indexer
-    restart: unless-stopped
+    container_name: panta-nectar-engine
+    restart: always
     environment:
       - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-      - PROGRAM_ID=PantaNect11111111111111111111111111111111111
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
       - PORT=8080
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 15s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
       timeout: 5s
       retries: 3

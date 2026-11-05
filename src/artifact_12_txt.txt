@@ -1,8 +1,7 @@
-services/keeper-agent/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts
-│   ├── merkle.ts
-│   ├── panta_listener.ts
-│   └── telemetry.ts
+Why current trading comps are broken: manual spreadsheets, delayed payouts & wash-trading.
+
+Our solution:
+⚡ On-chain deterministic Anchor state machine
+🛡️ Keccak256 Merkle proofs for gas-efficient settlement
+📈 Unutilized prize pool earns automated @NectarFi vault yield
+🔔 Instant Discord & @resend webhooks

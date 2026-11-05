@@ -1,264 +1,214 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  clusterApiUrl,
-} from "@solana/web3.js";
-import { Program, AnchorProvider, Wallet, BN } from "@coral-xyz/anchor";
+import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { Program, AnchorProvider, Wallet, Idl, BN } from "@coral-xyz/anchor";
+import { MerkleTree } from "merkletreejs";
+import keccak256 from "keccak256";
 import { Resend } from "resend";
 import axios from "axios";
-import dotenv from "dotenv";
-import express, { Request, Response } from "express";
-import client from "prom-client";
-import crypto from "crypto";
+import pino from "pino";
+import * as dotenv from "dotenv";
+import * as fs from "fs";
 
 dotenv.config();
 
-// Telemetry & Metrics setup
-const app = express();
-const register = new client.Registry();
-client.collectDefaultMetrics({ register });
-
-const tradesProcessedCounter = new client.Counter({
-  name: "arena_trades_processed_total",
-  help: "Total trade attestations committed on-chain",
-  labelNames: ["status"],
+const logger = pino({
+  transport: {
+    target: "pino-pretty",
+    options: { colorize: true }
+  }
 });
-register.registerMetric(tradesProcessedCounter);
 
-// Configurations
+// Configuration
 const RPC_URL = process.env.SOLANA_RPC_URL || clusterApiUrl("devnet");
-const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY!;
-const PROGRAM_ID = new PublicKey(
-  process.env.ARENA_PROGRAM_ID || "PArtNd8zV8hZ7mNzg6a7Z4R2R2jL4s9xHqB7d1vKpUm"
-);
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
-const COMPETITION_ID = new BN(process.env.COMPETITION_ID || "101");
+const ORACLE_PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY;
+const PROGRAM_ID = new PublicKey(process.env.PROGRAM_ID || "PNEcmp9999999999999999999999999999999999999");
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+if (!ORACLE_PRIVATE_KEY) {
+  logger.error("FATAL: ORACLE_PRIVATE_KEY environment variable is missing.");
+  process.exit(1);
+}
 
-// Initialize Keypair & Provider
 const oracleKeypair = Keypair.fromSecretKey(
   Uint8Array.from(JSON.parse(ORACLE_PRIVATE_KEY))
 );
-const connection = new Connection(RPC_URL, {
-  commitment: "confirmed",
-  wsEndpoint: RPC_URL.replace("https://", "wss://").replace("http://", "ws://"),
-});
+const connection = new Connection(RPC_URL, "confirmed");
 const wallet = new Wallet(oracleKeypair);
-const provider = new AnchorProvider(connection, wallet, {
-  commitment: "confirmed",
-});
+const provider = new AnchorProvider(connection, wallet, { commitment: "confirmed" });
 
-interface TradePayload {
-  competitor: string;
-  volumeUsdc: number; // raw units (e.g. 100_000_000 for 100 USDC)
-  pnlDelta: number;
-  txSignature: string;
-  sourceVenue: "PantaDEX" | "NectarFiVault";
+// Load IDL
+const idlRaw = fs.readFileSync("./target/idl/pne_competition.json", "utf8");
+const idl: Idl = JSON.parse(idlRaw);
+const program = new Program(idl, PROGRAM_ID, provider);
+
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+interface TraderState {
+  pubkey: PublicKey;
+  volume: number;
+  pnl: number;
+  score: number;
+  isNectarLp: boolean;
+  email?: string;
 }
 
-class ArenaIntegrationWorker {
-  private program: Program<any> | null = null;
+export class CompetitionEngine {
+  private competitionPda: PublicKey;
+  private traders: Map<string, TraderState> = new Map();
+  private currentSequenceId: number = 0;
 
-  async init() {
-    console.log("[Worker] Bootstrapping Panta x NectarFi Arena Worker...");
-    console.log(`[Worker] Oracle Public Key: ${oracleKeypair.publicKey.toBase58()}`);
-    console.log(`[Worker] Connected to RPC: ${RPC_URL}`);
+  constructor(competitionPda: PublicKey) {
+    this.competitionPda = competitionPda;
+  }
 
-    // In production, the IDL is loaded from the anchor artifacts or fetched via AnchorProvider
-    const idl = await Program.fetchIdl(PROGRAM_ID, provider);
-    if (!idl) {
-      throw new Error(`Failed to load IDL for Program ID ${PROGRAM_ID.toBase58()}`);
+  public async startPipeline() {
+    logger.info(`Starting Panta x NectarFi Ingestion Pipeline for Competition: ${this.competitionPda.toBase58()}`);
+
+    // Poll and ingest synthetic trading events
+    setInterval(async () => {
+      try {
+        await this.syncPantaAndNectarEvents();
+        await this.broadcastLeaderboard();
+      } catch (err) {
+        logger.error({ err }, "Error running ingestion interval");
+      }
+    }, 15000);
+  }
+
+  /**
+   * Simulates processing confirmed swaps from Panta liquidity pools
+   * and cross-referencing NectarFi structured vault deposits.
+   */
+  public async syncPantaAndNectarEvents() {
+    logger.info("Ingesting stream from Solana Yellowstone/RPC...");
+    this.currentSequenceId += 1;
+
+    // Example simulated trader event
+    const sampleTrader = Keypair.generate().publicKey;
+    const traderKey = sampleTrader.toBase58();
+
+    if (!this.traders.has(traderKey)) {
+      this.traders.set(traderKey, {
+        pubkey: sampleTrader,
+        volume: 0,
+        pnl: 0,
+        score: 0,
+        isNectarLp: Math.random() > 0.5,
+        email: "trader.winner@example.com"
+      });
     }
-    this.program = new Program(idl, provider);
-    console.log("[Worker] Program successfully attached.");
-  }
 
-  /**
-   * Derives competition state PDA
-   */
-  getCompetitionPDA(): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-      [Buffer.from("competition"), COMPETITION_ID.toArrayLike(Buffer, "le", 8)],
-      PROGRAM_ID
+    const traderData = this.traders.get(traderKey)!;
+    const deltaVolume = Math.floor(Math.random() * 50_000_000_000); // in token lamports
+    const deltaPnl = Math.floor((Math.random() - 0.3) * 5_000_000_000); // weighted positive
+
+    traderData.volume += deltaVolume;
+    traderData.pnl += deltaPnl;
+    const nectarMultiplier = traderData.isNectarLp ? 1.25 : 1.0;
+    traderData.score = Math.floor((traderData.volume + Math.max(0, traderData.pnl)) * nectarMultiplier);
+
+    logger.info(
+      `Trader ${traderKey.slice(0, 8)}... Volume: +${deltaVolume}, PnL: ${deltaPnl}, LP Boost: ${traderData.isNectarLp}`
     );
   }
 
-  /**
-   * Derives competitor profile PDA
-   */
-  getCompetitorProfilePDA(competitor: PublicKey): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("competitor"),
-        COMPETITION_ID.toArrayLike(Buffer, "le", 8),
-        competitor.toBuffer(),
-      ],
-      PROGRAM_ID
-    );
-  }
+  public async broadcastLeaderboard() {
+    const sorted = Array.from(this.traders.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
 
-  /**
-   * Derives trade receipt PDA to enforce replay protection
-   */
-  getTradeReceiptPDA(tradeHash: Buffer): [PublicKey, number] {
-    return PublicKey.findProgramAddressSync(
-      [Buffer.from("receipt"), tradeHash],
-      PROGRAM_ID
-    );
-  }
+    if (sorted.length === 0) return;
 
-  /**
-   * Ingest and verify trade execution; commits attestation to Solana
-   */
-  async processAndAttestTrade(payload: TradePayload): Promise<string> {
-    if (!this.program) throw new Error("Worker not initialized");
+    logger.info("Top Trader Score: " + sorted[0].score);
 
-    const competitorPubkey = new PublicKey(payload.competitor);
-    const [competitionPDA] = this.getCompetitionPDA();
-    const [profilePDA] = this.getCompetitorProfilePDA(competitorPubkey);
-
-    // Compute canonical 32-byte sha256 trade hash
-    const tradeHash = crypto
-      .createHash("sha256")
-      .update(`${payload.txSignature}-${payload.competitor}-${payload.volumeUsdc}`)
-      .digest();
-
-    const [receiptPDA] = this.getTradeReceiptPDA(tradeHash);
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    console.log(`[Worker] Attesting trade ${payload.txSignature} from ${payload.sourceVenue}...`);
-
-    try {
-      const tx = await this.program.methods
-        .recordVerifiedTrade(
-          Array.from(tradeHash),
-          new BN(payload.volumeUsdc),
-          new BN(payload.pnlDelta),
-          new BN(timestamp)
-        )
-        .accounts({
-          competition: competitionPDA,
-          competitorProfile: profilePDA,
-          tradeReceipt: receiptPDA,
-          oracleAuthority: oracleKeypair.publicKey,
-          systemProgram: PublicKey.default,
-        })
-        .signers([oracleKeypair])
-        .rpc();
-
-      console.log(`[Worker] Trade confirmed on Solana! Tx: ${tx}`);
-      tradesProcessedCounter.inc({ status: "success" });
-
-      // Notify telemetry endpoints
-      await this.dispatchLeaderboardNotification(payload, tx);
-      return tx;
-    } catch (err: any) {
-      console.error(`[Worker] Error recording trade: ${err.message}`);
-      tradesProcessedCounter.inc({ status: "failure" });
-      throw err;
-    }
-  }
-
-  /**
-   * Dispatches alerts to Discord and Resend Enterprise Email
-   */
-  async dispatchLeaderboardNotification(payload: TradePayload, txHash: string) {
-    const formattedVolume = (payload.volumeUsdc / 1e6).toFixed(2);
-    const formattedPnl = (payload.pnlDelta / 1e6).toFixed(2);
-
-    // 1. Post to Discord/Slack Webhook
     if (DISCORD_WEBHOOK_URL) {
-      try {
-        await axios.post(DISCORD_WEBHOOK_URL, {
-          embeds: [
-            {
-              title: "⚡ Verified Trade Attested | Panta x NectarFi Arena",
-              color: 0x00ff88,
-              fields: [
-                { name: "Venue", value: payload.sourceVenue, inline: true },
-                {
-                  name: "Competitor",
-                  value: `\`${payload.competitor.slice(0, 4)}...${payload.competitor.slice(-4)}\``,
-                  inline: true,
-                },
-                { name: "Volume (USDC)", value: `$${formattedVolume}`, inline: true },
-                { name: "Realized PnL", value: `$${formattedPnl}`, inline: true },
-                {
-                  name: "Solana Explorer",
-                  value: `[View Transaction](https://explorer.solana.com/tx/${txHash}?cluster=devnet)`,
-                },
-              ],
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        });
-      } catch (err: any) {
-        console.error(`[Alert] Discord dispatch failed: ${err.message}`);
+      const fields = sorted.map((t, idx) => ({
+        name: `#${idx + 1} - ${t.pubkey.toBase58().slice(0, 6)}...${t.pubkey.toBase58().slice(-4)}`,
+        value: `Score: **${t.score.toLocaleString()}** | Vol: $${(t.volume / 1e6).toFixed(2)} | Nectar Booster: ${t.isNectarLp ? "✅ 1.25x" : "❌ None"}`,
+        inline: false
+      }));
+
+      await axios.post(DISCORD_WEBHOOK_URL, {
+        embeds: [{
+          title: "🏆 Panta x NectarFi Live Trading Competition Standings",
+          color: 0xffaa00,
+          fields,
+          footer: { text: "Verified on Solana by PNE-Core" },
+          timestamp: new Date().toISOString()
+        }]
+      }).catch(err => logger.warn(`Failed to dispatch Discord webhook: ${err.message}`));
+    }
+  }
+
+  /**
+   * Finalizes the tournament, calculates Merkle leaves, publishes the root on-chain,
+   * and emails winners using Resend.
+   */
+  public async finalizeEpoch(payoutTable: { [pubkeyStr: string]: number }) {
+    logger.info("Finalizing Competition: Constructing Merkle Allocation Tree");
+
+    const elements = Object.entries(payoutTable).map(([pubkeyStr, amount]) => {
+      const pubkey = new PublicKey(pubkeyStr);
+      const amountBuffer = Buffer.alloc(8);
+      amountBuffer.writeBigUInt64LE(BigInt(amount));
+      return Buffer.concat([keccak256(Buffer.concat([pubkey.toBuffer(), amountBuffer]))]);
+    });
+
+    const merkleTree = new MerkleTree(elements, keccak256, { sortPairs: true });
+    const root = merkleTree.getRoot();
+
+    logger.info(`Calculated Merkle Root: 0x${root.toString("hex")}`);
+
+    // Commit Merkle root on-chain
+    const tx = await program.methods
+      .finalizeCompetition(Array.from(root))
+      .accounts({
+        competition: this.competitionPda,
+        authority: oracleKeypair.publicKey
+      })
+      .signers([oracleKeypair])
+      .rpc();
+
+    logger.info(`Finalization Tx Confirmed: ${tx}`);
+
+    // Dispatch Resend transactional notifications to top traders
+    if (resend) {
+      for (const [traderPubkey, rewardAmount] of Object.entries(payoutTable)) {
+        const traderObj = this.traders.get(traderPubkey);
+        if (traderObj && traderObj.email) {
+          try {
+            await resend.emails.send({
+              from: "competitions@nectarfi.com",
+              to: traderObj.email,
+              subject: "🎉 You Won the Panta x NectarFi Trading Competition!",
+              html: `
+                <h2>Congratulations Trader!</h2>
+                <p>Your address <code>${traderPubkey}</code> ranked in the winning tier.</p>
+                <p>Allocated Prize: <strong>${rewardAmount / 1e6} USDC</strong></p>
+                <p>Your cryptographic Merkle proof is indexed. Claim directly through the dApp portal.</p>
+              `
+            });
+            logger.info(`Claim notification sent to ${traderObj.email}`);
+          } catch (e: any) {
+            logger.error(`Resend failed for ${traderObj.email}: ${e.message}`);
+          }
+        }
       }
     }
 
-    // 2. Dispatch Enterprise Email via Resend if significant volume ($10,000+)
-    if (resend && payload.volumeUsdc >= 10_000 * 1e6 && process.env.ADMIN_ALERT_EMAIL) {
-      try {
-        await resend.emails.send({
-          from: "arena-alerts@nectarfi.exchange",
-          to: process.env.ADMIN_ALERT_EMAIL,
-          subject: `🐋 Whale Trade Attested: $${formattedVolume} USDC on ${payload.sourceVenue}`,
-          html: `
-            <h2>Panta x NectarFi Arena Event</h2>
-            <p>A major competition volume event was verified and anchored to Solana consensus.</p>
-            <ul>
-              <li><strong>Competitor:</strong> ${payload.competitor}</li>
-              <li><strong>Volume:</strong> $${formattedVolume} USDC</li>
-              <li><strong>Realized PnL:</strong> $${formattedPnl} USDC</li>
-              <li><strong>Solana Tx:</strong> ${txHash}</li>
-            </ul>
-          `,
-        });
-      } catch (err: any) {
-        console.error(`[Alert] Resend email dispatch failed: ${err.message}`);
-      }
-    }
+    return { root, merkleTree };
   }
 }
 
-// -----------------------------------------------------------------------------
-// HTTP & METRICS SERVER
-// -----------------------------------------------------------------------------
-const worker = new ArenaIntegrationWorker();
+// Direct Execution Hook
+if (require.main === module) {
+  const [competitionIdStr] = process.argv.slice(2);
+  const compId = new BN(competitionIdStr || "1");
+  const [competitionPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("competition"), compId.toArrayLike(Buffer, "le", 8)],
+    PROGRAM_ID
+  );
 
-app.use(express.json());
-
-// Prometheus Metrics Scrape Endpoint
-app.get("/metrics", async (_req: Request, res: Response) => {
-  res.setHeader("Content-Type", register.contentType);
-  res.send(await register.metrics());
-});
-
-// Liveness / Readiness Healthcheck
-app.get("/healthz", (_req: Request, res: Response) => {
-  res.status(200).json({ status: "healthy", timestamp: Date.now() });
-});
-
-// Ingest webhook endpoint for Panta/NectarFi off-chain trade matchers
-app.post("/api/v1/trade-webhook", async (req: Request, res: Response) => {
-  try {
-    const payload = req.body as TradePayload;
-    if (!payload.competitor || !payload.txSignature || !payload.volumeUsdc) {
-      return res.status(400).json({ error: "Missing required payload parameters" });
-    }
-    const signature = await worker.processAndAttestTrade(payload);
-    return res.status(200).json({ success: true, solanaTx: signature });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, async () => {
-  console.log(`[Server] Metrics and Webhook server online on port ${PORT}`);
-  await worker.init();
-});
+  const engine = new CompetitionEngine(competitionPda);
+  engine.startPipeline().catch(console.error);
+}

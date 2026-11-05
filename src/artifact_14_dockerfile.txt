@@ -1,17 +1,23 @@
 FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package.json tsconfig.json ./
-RUN npm install
-COPY src ./src
-RUN npm run build
+
+WORKDIR /usr/src/app
+
+COPY client/package.json client/yarn.lock ./
+RUN yarn install --frozen-lockfile
+
+COPY client/tsconfig.json ./
+COPY client/src ./src
+RUN yarn build
 
 FROM node:20-alpine AS runner
-WORKDIR /app
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
+
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+
+COPY client/package.json ./
+RUN yarn install --production --frozen-lockfile
+
+COPY --from=builder /usr/src/app/dist ./dist
 
 USER node
-EXPOSE 8080
-ENV NODE_ENV=production
-CMD ["node", "dist/worker.js"]
+ENTRYPOINT ["node", "dist/index.js"]

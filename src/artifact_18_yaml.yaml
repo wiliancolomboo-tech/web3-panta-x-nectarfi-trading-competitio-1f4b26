@@ -1,27 +1,18 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  nectarpulse-keeper:
+  competition-relayer:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: nectarpulse-keeper-service
-    restart: unless-stopped
-    environment:
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
-      - PROGRAM_ID=NectP11111111111111111111111111111111111111
-      - COMPETITION_PDA=${COMPETITION_PDA}
-      - ORACLE_SECRET_KEY=${ORACLE_SECRET_KEY}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - RESEND_FROM_EMAIL=competitions@nectarfi.io
+    container_name: panta-nectar-relayer
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
     logging:
       driver: "json-file"
       options:
-        max-size: "50m"
+        max-size: "100m"
         max-file: "5"
-    healthcheck:
-      test: ["CMD-SHELL", "node -e \"process.exit(0)\""]
-      interval: 30s
-      timeout: 10s
-      retries: 3

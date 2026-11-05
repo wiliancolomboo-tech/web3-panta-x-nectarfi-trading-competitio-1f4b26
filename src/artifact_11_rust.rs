@@ -1,64 +1,133 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::errors::CompetitionError;
-use crate::state::{Competition, TraderRecord};
+use crate::state::*;
 
 #[derive(Accounts)]
-pub struct RecordTrade<'info> {
+#[instruction(competition_id: u64)]
+pub struct FinalizeCompetition<'info> {
     #[account(
-        constraint = authority.key() == competition.authority @ CompetitionError::Unauthorized
+        constraint = admin.key() == competition.admin @ CompetitionError::Unauthorized
     )]
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump
+        seeds = [COMPETITION_SEED, competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump,
+    )]
+    pub competition: Account<'info, Competition>,
+}
+
+pub fn finalize_handler(
+    ctx: Context<FinalizeCompetition>,
+    _competition_id: u64,
+    merkle_root: [u8; 32],
+) -> Result<()> {
+    let comp = &mut ctx.accounts.competition;
+    let clock = Clock::get()?;
+
+    require!(clock.unix_timestamp >= comp.end_ts, CompetitionError::CompetitionNotStarted);
+    require!(comp.status == CompetitionStatus::Active, CompetitionError::CompetitionAlreadyFinalized);
+
+    comp.status = CompetitionStatus::Finalized;
+    comp.merkle_root = merkle_root;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+#[instruction(competition_id: u64)]
+pub struct ClaimReward<'info> {
+    #[account(mut)]
+    pub trader: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [COMPETITION_SEED, competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump,
+        constraint = competition.status == CompetitionStatus::Finalized @ CompetitionError::CompetitionNotFinalized
     )]
     pub competition: Account<'info, Competition>,
 
     #[account(
         mut,
         seeds = [
-            b"trader_record",
-            competition.key().as_ref(),
-            trader_record.trader.as_ref()
+            PARTICIPANT_SEED,
+            competition_id.to_le_bytes().as_ref(),
+            trader.key().as_ref()
         ],
-        bump = trader_record.bump
+        bump = participant.bump,
+        constraint = !participant.claimed @ CompetitionError::RewardAlreadyClaimed
     )]
-    pub trader_record: Account<'info, TraderRecord>,
+    pub participant: Account<'info, Participant>,
+
+    #[account(
+        mut,
+        seeds = [VAULT_SEED, competition_id.to_le_bytes().as_ref()],
+        bump = competition.vault_bump,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        token::authority = trader,
+    )]
+    pub trader_token_account: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(ctx: Context<RecordTrade>, volume: u64, realized_pnl: i64) -> Result<()> {
-    let clock = Clock::get()?;
-    let comp = &mut ctx.accounts.competition;
+pub fn claim_handler(
+    ctx: Context<ClaimReward>,
+    competition_id: u64,
+    reward_amount: u64,
+    merkle_proof: Vec<[u8; 32]>,
+) -> Result<()> {
+    let comp = &ctx.accounts.competition;
+    let participant = &mut ctx.accounts.participant;
 
-    require!(
-        clock.unix_timestamp >= comp.start_timestamp && clock.unix_timestamp <= comp.end_timestamp,
-        CompetitionError::CompetitionNotActive
-    );
-    require!(!comp.is_finalized, CompetitionError::AlreadyFinalized);
-    require!(volume >= comp.min_trade_size, CompetitionError::TradeVolumeBelowMinimum);
+    // Verify Merkle Proof: Leaf = keccak256(trader_pubkey || reward_amount)
+    let mut leaf = anchor_lang::solana_program::keccak::hashv(&[
+        ctx.accounts.trader.key().as_ref(),
+        &reward_amount.to_le_bytes(),
+    ]).0;
 
-    let trader_record = &mut ctx.accounts.trader_record;
-    trader_record.cumulative_volume = trader_record
-        .cumulative_volume
-        .checked_add(volume)
+    for proof_element in merkle_proof.iter() {
+        if leaf <= *proof_element {
+            leaf = anchor_lang::solana_program::keccak::hashv(&[&leaf, proof_element]).0;
+        } else {
+            leaf = anchor_lang::solana_program::keccak::hashv(&[proof_element, &leaf]).0;
+        }
+    }
+
+    require!(leaf == comp.merkle_root, CompetitionError::InvalidMerkleProof);
+
+    participant.claimed = true;
+
+    // Return stake bond + competition reward payout
+    let total_disbursement = reward_amount
+        .checked_add(participant.stake_bond)
         .ok_or(CompetitionError::MathOverflow)?;
 
-    trader_record.cumulative_pnl = trader_record
-        .cumulative_pnl
-        .checked_add(realized_pnl)
-        .ok_or(CompetitionError::MathOverflow)?;
+    let competition_id_bytes = competition_id.to_le_bytes();
+    let seeds = &[
+        COMPETITION_SEED,
+        competition_id_bytes.as_ref(),
+        &[comp.bump],
+    ];
+    let signer = &[&seeds[..]];
 
-    trader_record.total_trades = trader_record
-        .total_trades
-        .checked_add(1)
-        .ok_or(CompetitionError::MathOverflow)?;
-
-    comp.total_volume = comp
-        .total_volume
-        .checked_add(volume)
-        .ok_or(CompetitionError::MathOverflow)?;
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.vault.to_account_info(),
+        to: ctx.accounts.trader_token_account.to_account_info(),
+        authority: ctx.accounts.competition.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    token::transfer(
+        CpiContext::new_with_signer(cpi_program, cpi_accounts, signer),
+        total_disbursement,
+    )?;
 
     Ok(())
 }

@@ -1,7 +1,5 @@
 ---
 
-# 5. Comprehensive Test Suite & QA Matrix
+# 6. Sponsor Handover & Turnkey Operations
 
-Complete Anchor integration test verifying trader registration, trade checkpoint logging, anti-tampering guards, and cryptographic Merkle proof claiming.
-
-Save as `tests/nectar_panta_competition.ts`:
+### 6.1 Deployment Commands

@@ -1,7 +1,5 @@
-nectarrank_rpc_latency_ms
-nectarrank_settlement_success_total
-nectarrank_settlement_failure_total
-nectarrank_trade_lag_seconds
-nectarrank_unprocessed_trades
-nectarrank_notification_failure_total
-nectarrank_claim_events_total
+2/ Most trading contests suffer from self-matching wash traders who drain pools with delta-neutral churn.
+
+PVCE deploys real-time cycle detection off-chain + Anchor PDAs on-chain.
+
+Scoring factors in raw PnL%, authentic execution, and your @NectarFi structured LP stake weight ⚡️

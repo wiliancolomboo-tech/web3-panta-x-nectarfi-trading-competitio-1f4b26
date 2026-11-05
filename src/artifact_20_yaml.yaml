@@ -1,26 +1,26 @@
 version: '3.8'
 
 services:
-  competition-worker:
+  nectarpulse-worker:
     build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: always
     environment:
       - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-      - AUTHORITY_KEYPAIR_PATH=/secrets/authority.json
-      - RESEND_API_KEY=${RESEND_API_KEY}
+      - PROGRAM_ID=PntNctR111111111111111111111111111111111111
+      - KEYPAIR_PATH=/secrets/id.json
+      - HIGH_ROLLER_THRESHOLD_USD=50000
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DIGEST_RECIPIENT_EMAIL=ops@nectarfi.com
     volumes:
       - ./secrets:/secrets:ro
+    ports:
+      - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "node -e 'console.log(process.uptime())'"]
+      test: ["CMD-SHELL", "node -e 'console.log(true)'"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"

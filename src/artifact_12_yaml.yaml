@@ -1,29 +1,27 @@
 version: '3.8'
 
 services:
-  competition-settlement-engine:
+  competition-agent:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-engine
-    restart: unless-stopped
+    container_name: panta_nectar_sentinel
+    restart: always
     environment:
-      - NODE_ENV=production
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
-      - PROGRAM_ID=${PROGRAM_ID}
-      - COMPETITION_ID=${COMPETITION_ID}
-      - ADMIN_KEYPAIR_PATH=/etc/secrets/admin-keypair.json
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - AUTHORITY_KEYPAIR_PATH=/secrets/id.json
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your/webhook
+      - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/webhook
+      - RESEND_API_KEY=re_test_000000000000000000000000
+      - RESEND_SENDER_EMAIL=prizes@nectarfi.io
+      - PORT=8080
     volumes:
-      - ./admin-keypair.json:/etc/secrets/admin-keypair.json:ro
+      - ./secrets:/secrets:ro
+    ports:
+      - "8080:8080"
     healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Daemon healthy')"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
+      start_period: 10s

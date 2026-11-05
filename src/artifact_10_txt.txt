@@ -1,10 +1,14 @@
-Operational Procedures:
-1. Emergency Pause:
-   Run Anchor CLI instruction `pause_competition(true)` from the admin keypair.
-   This halts new claims and registrations instantly while preserving escrow balances.
-
-2. Oracle Key Rotation:
-   Update `oracle_authority` via program administrative upgrade or deploy an automated multisig rotation.
-
-3. Monitoring Endpoint (/health):
-   GET /health -> HTTP 200 { "status": "UP", "last_synced_slot": 298492019, "pending_settlements": 0 }
++-------------------------------------------------------------------------------+
+|                       OPERATIONAL TROUBLESHOOTING RUNBOOK                     |
++---------------------------------------+---------------------------------------+
+| Incident / Condition                  | Immediate Remediation Action          |
++---------------------------------------+---------------------------------------+
+| RPC Rate Limiting / 429 Quotas        | Switch fallback endpoint to private   |
+|                                       | Triton/Helius gRPC endpoint in .env   |
++---------------------------------------+---------------------------------------+
+| Attestation Signer Low Balance (<0.1) | Auto-fund attestation keypair via    |
+|                                       | institutional hot wallet crons        |
++---------------------------------------+---------------------------------------+
+| Suspected Flash Wash Syndicate        | Adjust wash penalty threshold in agent|
+|                                       | config from 5000 bps to 9500 bps      |
++---------------------------------------+---------------------------------------+

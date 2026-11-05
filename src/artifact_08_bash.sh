@@ -1,18 +1,18 @@
-# 1. Clone repository & install dependencies
-git clone https://github.com/nectar-fi/panta-arena.git
-cd panta-arena
-yarn install
-
-# 2. Build on-chain Anchor program
+# 1. Build & Deploy Smart Contract on Solana Mainnet/Devnet
 anchor build
+solana program deploy \
+  --program-id target/deploy/panta_nectar_competition-keypair.json \
+  target/deploy/panta_nectar_competition.so \
+  --url mainnet-beta
 
-# 3. Synchronize program ID across source code and Anchor.toml
-solana address -k target/deploy/panta_nectar_arena-keypair.json
-anchor keys sync
+# 2. Transfer Upgrade Authority to Multi-Sig (Squads)
+solana program set-upgrade-authority PNTAnect11111111111111111111111111111111111 \
+  --new-upgrade-authority <SQUADS_MULTISIG_VAULT_ADDRESS>
 
-# 4. Deploy to Solana Devnet / Mainnet-Beta
-solana config set --url https://api.devnet.solana.com
-anchor deploy --provider.cluster devnet
+# 3. Boot Turnkey Keeper Service via Docker Compose
+cp .env.example .env
+# Populate DISCORD_WEBHOOK_URL and RESEND_API_KEY in .env
+docker compose up -d --build
 
-# 5. Initialize the competition epoch via CLI
-anchor run init-competition -- --network devnet --id 101 --duration 604800
+# 4. Verify Telemetry & Service Logs
+docker logs -f panta-nectar-keeper

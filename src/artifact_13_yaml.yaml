@@ -1,19 +1,29 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  competition-crank:
+  arena-crank:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-crank
-    restart: unless-stopped
+    restart: always
     environment:
-      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-      - PROGRAM_ID=PNECT11111111111111111111111111111111111111
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - PROGRAM_ID=${PROGRAM_ID}
+      - COMPETITION_ID=${COMPETITION_ID}
+      - ADMIN_KEYPAIR_PATH=/app/keys/admin-keypair.json
       - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_SENDER=${RESEND_SENDER}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+    volumes:
+      - ./admin-keypair.json:/app/keys/admin-keypair.json:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: "json-file"
       options:
-        max-size: "20m"
-        max-file: "5"
+        max-size: "10m"
+        max-file: "3"

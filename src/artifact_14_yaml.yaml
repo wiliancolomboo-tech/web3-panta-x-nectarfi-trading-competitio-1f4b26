@@ -1,24 +1,25 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  panta-nectar-daemon:
+  competition-crank:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-relayer
+    container_name: panta-nectar-crank
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
       - PORT=8080
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
-      - PROGRAM_ID=${PROGRAM_ID}
-      - RELAYER_PRIVATE_KEY=${RELAYER_PRIVATE_KEY}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
       - RESEND_API_KEY=${RESEND_API_KEY}
-      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"
+      - RESEND_FROM_EMAIL=arena@nectar.fi
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+    volumes:
+      - ./secrets:/secrets:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

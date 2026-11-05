@@ -1,12 +1,11 @@
-programs/panta_nectar_arena/
+programs/panta_nectar_competition/
 ├── Cargo.toml
 └── src/
     ├── errors.rs
     ├── instructions/
     │   ├── claim_reward.rs
+    │   ├── commit_epoch.rs
     │   ├── initialize_competition.rs
-    │   ├── mod.rs
-    │   ├── record_batch_pnl.rs
-    │   └── register_trader.rs
-    ├── lib.rs
-    └── state.rs
+    │   └── mod.rs
+    ├── state.rs
+    └── lib.rs

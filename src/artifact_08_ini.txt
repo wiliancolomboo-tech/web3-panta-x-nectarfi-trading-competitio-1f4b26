@@ -1,6 +1,6 @@
-SOLANA_RPC_URL="https://api.devnet.solana.com"
-PROGRAM_ID="PantaNect11111111111111111111111111111111111"
-KEEPER_KEYPAIR_PATH="./secrets/keeper-keypair.json"
-RESEND_API_KEY="re_live_xxxxxxxxxxxxxxxxxxxxxx"
-DISCORD_WEBHOOK_URL="https://api.example.com/webhooks/alerts/placeholder"
-PORT=8080
+SOLANA_RPC_URL=https://api.devnet.solana.com
+PROGRAM_ID=PNTAnect11111111111111111111111111111111111
+COMPETITION_ID=1
+ORACLE_PRIVATE_KEY=[1,2,3,4,...]
+RESEND_API_KEY=re_test_000000000000000000000000
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...

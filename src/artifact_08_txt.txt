@@ -1,9 +1,2 @@
-+-------------------------------------------------------------------------------+
-|                      OPERATIONAL HEALTH CHECK MATRIX                           |
-+---------------------+-------------------------------+-------------------------+
-| Target / Service    | Command / Metric              | Normal Threshold        |
-+---------------------+-------------------------------+-------------------------+
-| Docker Sentinel     | curl http://localhost:8080/healthz | {"status":"healthy"}  |
-| RPC Webhook Delay   | Event subscription latency    | < 400ms                 |
-| Escrow Vault Solv.  | spl-token balance <VAULT_PDA> | == Total Prize Pool     |
-+---------------------+-------------------------------+-------------------------+
+### 6.4 Operational Runbook & Healthcheck Telemetry Endpoint
+To expose health check status for enterprise monitoring stacks (e.g. Datadog, Prometheus), the worker mounts an HTTP micro-listener:

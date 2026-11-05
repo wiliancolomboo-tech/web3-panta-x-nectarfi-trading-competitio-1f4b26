@@ -1,8 +1,9 @@
-SOLANA_RPC_URL=https://api.devnet.solana.com
-SOLANA_WS_URL=wss://api.devnet.solana.com
-PROGRAM_ID=PNTAnECTAR111111111111111111111111111111111
-COMPETITION_ID=1
-SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-RESEND_API_KEY=re_enterprise_test_key
-PORT=8080
+SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+PROGRAM_ID="PntA111111111111111111111111111111111111111"
+ADMIN_KEYPAIR_PATH="/app/keys/admin-keypair.json"
+COMPETITION_ID="1001"
+RESEND_API_KEY="re_test_000000000000000000000000"
+RESEND_SENDER="arena-ops@nectarfi.com"
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/123456789/abcdefgh"
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/T00/B00/XXXX"
+CRANK_INTERVAL_MS="30000"

@@ -1,16 +1,17 @@
-1/4 🚀 Introducing the Verifiable On-Chain Competition Engine (VOCE) built for @PantaFi & @NectarFi! 
+1/4 🚨 Announcing the Panta x @NectarFi Trading Arena on @Solana! ⚡
 
-Say goodbye to opaque off-chain scoreboards and delayed manual multisig payouts. Real-time, trustless trading competitions on @solana are finally here. 👇
+Traditional trading competitions are plagued by wash-trading, delayed manual payouts, and centralized spreadsheets.
 
-2/4 ⚡ Powered by Anchor, VOCE commits trade volume and PnL metrics directly to deterministic PDAs with anti-wash trading filters. 
+We built the open-source, non-custodial competition protocol for Solana DeFi. 🧵👇
 
-Prize vaults are locked in non-custodial smart contracts and disbursed instantly post-competition via cryptographic Merkle proofs. Zero custodial risk.
+2/4 🛠️ How it works:
+1️⃣ Swaps routed via Panta DEX directly feed NectarFi structured yield strategies.
+2️⃣ Verifiable on-chain PnL & volume engine tracking real-time delta via checked i128 math.
+3️⃣ Non-custodial PDA prize vault: winners claim rewards trustlessly the moment an epoch ends.
 
-3/4 🔔 Built with enterprise-grade operational tooling:
-- Real-time Discord/Slack whale trade notifications
-- Winner email dispatch via @resend
-- Turnkey Docker execution & 100% test coverage
+3/4 📊 Zero-downtime enterprise automation:
+• Automated telemetry pushed directly to Discord & Slack webhooks.
+• Instant winner claim notifications dispatched via @resend.
+• 100% test coverage with verifiable Anchor smart contracts and Docker deployment.
 
-The benchmark for decentralized trading competitions on Solana is set. 🏆
-
-Check the open-source architecture here: https://github.com/panta-nectar-bounty/voce-engine
+Built for the speed of Solana. Live on Devnet! 🏆🚀

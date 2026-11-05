@@ -1,8 +1,8 @@
 {
-     "status": "healthy",
-     "competition_id": 101,
-     "solana_rpc_latency_ms": 42,
-     "processed_trades": 84210,
-     "flagged_sybil_attempts": 34,
-     "last_checkpoint_slot": 268491823
-   }
+  "status": "healthy",
+  "programId": "PantaNectArena11111111111111111111111111111",
+  "activeCompetitionId": 88801,
+  "lastIndexedSlot": 298412890,
+  "oracleSyncLatencyMs": 142,
+  "uptimeSeconds": 86420
+}

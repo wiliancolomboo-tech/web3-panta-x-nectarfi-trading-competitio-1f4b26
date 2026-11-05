@@ -1,20 +1,18 @@
-1/7 ⚡ Introducing HydraEngine: The Verifiable Trading & Yield Arena built natively for @PantaExchange x @NectarFi on @Solana!
+1/3 🏆 Introducing the Panta x @NectarFi Performance Arena: The first mathematically pure, non-custodial trading competition protocol on @solana. 
 
-Trading competitions are historically broken by wash bots and opaque admin multisigs. We fixed this permanently. 🧵👇
+Gone are the days of manual spreadsheets, idle escrow tokens, and wash-trading exploits. 
 
-2/7 🔬 How it works:
-Hydra introduces a cross-protocol scoring engine:
-• Cleansed Net PnL (45%)
-• Anti-wash filtered Panta Margin Volume (35%)
-• NectarFi Time-Weighted Yield multiplier (20%)
+Here is what we engineered for the bounty 🧵👇
 
-Sybil bots get filtered in real-time; genuine cross-protocol liquidity gets rewarded. 🌊
+2/3 ⚡ Built on Anchor + Panta Execution Engines:
+🛡️ Risk-Adjusted Performance Scoring (RAPS): PnL penalized against Drawdown & wash-volume dampening.
+📈 Yield-bearing Escrows: Prizes auto-compound through NectarFi LP vaults during the epoch.
+⚡ 100% on-chain trustless claims.
 
-3/7 🛡️ Zero admin custody on payouts:
-At epoch end, final standings are committed on-chain via Keccak256 Sparse Merkle Roots.
-Winners verify their branch and claim USDC directly from the escrow PDA in <400ms. Non-custodial, deterministic, instant. ⚡
+3/3 📡 Enterprise-Grade Telemetry:
+Every snapshot is deterministically signed & broadcast in real-time via @resend and Discord Webhooks.
 
-4/7 🏢 Enterprise-grade telemetry:
-Fully equipped with instant @Resend cryptographic email claim links for winning desks, real-time Discord/Slack whale activity monitors, and automated containerized keepers.
+No centralized custody. Sub-second resolution. Pure Solana speed.
 
-Submission open, fully tested, and ready for Mainnet. Let the arena begin! 🏆🚀
+Full open-source repo, Anchor program & QA suite ready for mainnet:
+github.com/nectar-fi/panta-nectar-arena 🚀

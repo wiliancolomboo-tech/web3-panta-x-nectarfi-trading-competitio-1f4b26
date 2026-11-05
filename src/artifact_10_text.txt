@@ -1,7 +1,5 @@
-🧵 2/3
-⚡️ Under the Hood:
-1️⃣ Deterministic Anchor program anchoring volume, PnL & anti-wash decay scores on-chain.
-2️⃣ Sub-second atomic prize payouts directly via Solana Token Escrow PDAs.
-3️⃣ Real-time enterprise alerts wired directly into Discord, Slack & @resend for transparency.
+🚨 Verifiable trading competitions have officially arrived on @Solana.
 
-Zero CSVs. Zero manual transfers. Pure Solana speed.
+Legacy DeFi tournaments are plagued by wash trading, black-box SQL leaderboards, and slow manual prize payouts.
+
+In partnership with @PantaProtocol & @NectarFi, we built the ultimate Verifiable Arena Engine. 🧵👇

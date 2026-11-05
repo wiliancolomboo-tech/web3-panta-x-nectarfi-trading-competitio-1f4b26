@@ -1,6 +1,16 @@
-mkdir -p secrets
-solana-keygen new --no-bip39-passphrase -o secrets/keeper-key.json
-export KEEPER_PUBKEY=$(solana-keygen pubkey secrets/keeper-key.json)
+# 1. Build and verify Anchor smart contract
+anchor build
 
-# Airdrop devnet SOL for keeper rent & transaction fees
-solana airdrop 2 $KEEPER_PUBKEY --url devnet
+# 2. Deploy to Solana Devnet / Mainnet
+solana program deploy \
+  --program-id target/deploy/panta_nectar_clash-keypair.json \
+  target/deploy/panta_nectar_clash.so \
+  --url https://api.mainnet-beta.solana.com \
+  --fee-payer deployer-wallet.json
+
+# 3. Initialize Competition Genesis
+npx ts-node orchestrator/src/admin/initCompetition.ts \
+  --competitionId 1 \
+  --durationDays 14 \
+  --rewardAmount 50000 \
+  --rewardMint EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v

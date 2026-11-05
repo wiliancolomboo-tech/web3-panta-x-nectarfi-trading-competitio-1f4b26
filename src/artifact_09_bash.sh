@@ -1,8 +1,11 @@
-# Build verified program binary
-anchor build
+# 1. Build Solana bytecode
+   anchor build
 
-# Get program ID
-solana address -k target/deploy/panta_nectar_competition-keypair.json
+   # 2. Synchronize Program Keys
+   anchor keys sync
 
-# Deploy to Solana Mainnet-Beta
-anchor deploy --provider.cluster mainnet --program-keypair target/deploy/panta_nectar_competition-keypair.json
+   # 3. Deploy to Solana Cluster
+   solana program deploy \
+     --url https://api.mainnet-beta.solana.com \
+     --program-id target/deploy/panta_nectar_competition-keypair.json \
+     target/deploy/panta_nectar_competition.so

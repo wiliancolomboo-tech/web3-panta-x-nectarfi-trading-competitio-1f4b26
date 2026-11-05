@@ -1,19 +1,6 @@
-🧵 1/3
-Thrilled to unveil the Verifiable Trading Competition Engine for @PantaExchange & @NectarFi! ⚡️
+🧵 1/3: ⚡️ Introducing the Panta x NectarFi Arena Protocol: The first trustless, institutional-grade Trading Competition & Automated Settlement Engine on @solana. No manual spreadsheets. Zero custody risk. Fully verifiable on-chain Merkle claims. 🌊🍯 #Solana #DeFi
 
-Say goodbye to opaque off-chain spreadsheets and multi-week payout delays. Our Anchor-native architecture brings non-custodial PDA prize vaults, on-chain Sybil guards, and instant Merkle claims to Solana DeFi. 🌊🦀
+🧵 2/3: 🛡 Sybil-Resistant & Non-Custodial: We combine Panta DEX perpetual flow with @NectarFi basis vault collateral snapshots. Our scoring algorithm factors both PnL and Max Drawdown, eliminating wash churn while guaranteeing fair distribution via smart contract escrow.
 
-🧵 2/3
-Under the hood:
-🔹 Non-custodial PDA Escrow Vaults keeping protocol prizes verifiable
-🔹 Anti-wash-trading volume-to-PnL ranking heuristics
-🔹 Sub-cent O(1) Keccak-256 Merkle proof disbursements
-🔹 Turnkey alerts with @Discord webhooks & @resend transactional email alerts
-
-🧵 3/3
-Turnkey, production-grade, and containerized for zero-downtime execution. 
-
-Full open-source repo, test matrix, and Docker harness are ready for production deployment:
-🔗 https://github.com/panta-nectar-bounty/verifiable-competition-engine
-
-LFG @PantaExchange x @NectarFi! 🚀
+🧵 3/3: 🚀 Real-time event indexing streams live leaderboard telemetry to Discord & triggers winner claims via @resend. Fully built on Anchor, 100% test coverage, and turnkey Docker deployment ready for mainnet!
+GitHub & Runbook: https://github.com/sponsor/panta-nectar-arena 🏆

@@ -1,8 +1,5 @@
-GET /healthz -> 200 OK
-{
-  "status": "healthy",
-  "programId": "PANTAnECtArFi111111111111111111111111111111",
-  "activeWebsocket": true,
-  "lastHeartbeat": 1726058920194,
-  "trackedTraders": 412
-}
+🚀 High-frequency DEX trading meets institutional yield vaults on @solana.
+
+We are thrilled to unveil the Panta x @NectarFi Trading Arena: the first tamper-proof, non-custodial competition engine with real-time settlement & automated yield streaming! 🧵👇
+
+#Solana #DeFi #TradingBounty

@@ -1,5 +1,1 @@
----
-
-# 6. Sponsor Handover & Turnkey Operations
-
-### Operational Runbook & Deployment Guide
+### 6.2 Dockerization (`Dockerfile`)

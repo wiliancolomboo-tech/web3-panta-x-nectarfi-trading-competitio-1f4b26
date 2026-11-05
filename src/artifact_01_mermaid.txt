@@ -1,44 +1,22 @@
 flowchart TD
-    subgraph Users ["Trading Competitors"]
-        TraderA["Trader A (Alice)"]
-        TraderB["Trader B (Bob)"]
+    subgraph Trader_Interface ["Trader Execution Layer"]
+        T1[Trader Wallet] -->|1. Register & Stake Entry Fee| PROG[Panta x NectarFi Arena Program]
+        T1 -->|2. Route Swap via Panta Router| PANTA[Panta DEX Aggregator]
+        PANTA -->|3. Deposit / Hedged Yield Strategy| NECTAR[NectarFi Yield Vaults]
     end
 
-    subgraph Program ["Solana Anchor Program: panta_nectar_competition"]
-        Config["Competition State PDA\n(Timestamps, Rules, Tiers)"]
-        VaultPDA["NectarFi Prize Vault PDA\n(Principal + Accrued Yield)"]
-        Leaderboard["On-Chain Leaderboard State\n(Top-K Heap, Volume, PnL)"]
-        UserPDA["Participant State PDA\n(Realized PnL, Volume, Nonce)"]
+    subgraph Solana_OnChain ["Solana Program (Anchor)"]
+        PROG -->|Derive PDA| PPDA[Participant State PDA]
+        PROG -->|Lock Prize| VESC[Prize Vault Token PDA]
+        ORAC[Authorized Keeper / Settlement Oracle] -->|4. Submit Verified Epoch Deltas| PROG
+        PROG -->|5. Update Realized PnL & Volume| PPDA
+        PROG -->|6. Settle Epoch & Lock Ranks| LB[Competition State PDA]
+        VESC -->|7. Non-Custodial Reward Claim| T1
     end
 
-    subgraph Protocols ["Ecosystem Protocols"]
-        Panta["Panta Routing / DEX Engine\n(Swap & Perps Execution)"]
-        Nectar["NectarFi Protocol\n(Automated Structured Yield Vault)"]
+    subgraph OffChain_Enterprise ["Enterprise Automation & Telemetry Engine"]
+        RPC[Solana Geyser / WebSocket RPC] -->|Stream Account Updates & Logs| WORKER[Arena Event Engine CLI]
+        WORKER -->|Parse Trades & Anti-Wash Validation| DB[(Redis Timeseries Cache)]
+        WORKER -->|Broadcast Live Leaderboard| DISCORD[Discord / Slack Webhook]
+        WORKER -->|Issue Claim Token & Winner Alert| RESEND[Resend Enterprise Email API]
     end
-
-    subgraph OffChain ["Enterprise Automation & Telemetry"]
-        Keeper["Autonomous Indexer & Keeper CLI\n(Rust / TypeScript)"]
-        Discord["Discord / Slack Webhook Service"]
-        Resend["Resend Institutional Email Dispatcher"]
-    end
-
-    %% User Interactions
-    TraderA -->|"1. Register & Stake Entry Fee"| Program
-    TraderB -->|"1. Register & Stake Entry Fee"| Program
-    Program -->|"2. Deposit Funds into Yield Vault"| Nectar
-
-    %% Execution Loop
-    TraderA -->|"3. Execute Trades"| Panta
-    Panta -->|"4. CPI Trade Attestation Event"| Program
-    Program -->|"5. Update PnL & Volume Weights"| UserPDA
-    UserPDA -->|"6. Rebalance Score Matrix"| Leaderboard
-
-    %% Off-chain Loop
-    Leaderboard -.->|"7. WebSocket Log Monitoring"| Keeper
-    Nectar -.->|"8. Harvest Compounded Yield"| VaultPDA
-    Keeper -->|"9. Trigger Epoch Finalization"| Program
-    Program -->|"10. Disburse Prizes + Escrow Return"| Users
-
-    %% Telemetry
-    Keeper -->|"11. Post Winner Announcements"| Discord
-    Keeper -->|"12. Deliver Prize Claim Receipts"| Resend

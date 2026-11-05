@@ -1,22 +1,24 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /usr/src/app
 
-COPY package.json yarn.lock tsconfig.json ./
-RUN yarn install --frozen-lockfile
+COPY package*.json ./
+COPY tsconfig.json ./
+RUN npm ci
 
-COPY services/ ./services/
-RUN yarn build:services
+COPY src/ ./src/
+RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /usr/src/app
 
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY --from=builder /usr/src/app/dist ./dist
+
+USER node
 ENV NODE_ENV=production
 
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/package.json ./
-
 EXPOSE 8080
-
-CMD ["node", "dist/services/indexer-oracle/index.js"]
+CMD ["node", "dist/keeper_orchestrator.js"]

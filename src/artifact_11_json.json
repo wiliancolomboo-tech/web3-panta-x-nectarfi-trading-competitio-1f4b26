@@ -1,12 +1,11 @@
 {
-  "status": "HEALTHY",
-  "activeCompetitionId": 1,
-  "lastIndexedSlot": 268492011,
-  "registeredParticipants": 1420,
-  "merkleState": "PENDING_FINALIZATION",
-  "notificationServices": {
-    "slack": "ONLINE",
-    "discord": "ONLINE",
-    "resend": "READY"
+  "status": "healthy",
+  "programId": "PantaNectComp11111111111111111111111111111111",
+  "activeEpoch": 101,
+  "slotHeight": 284918230,
+  "telemetry": {
+    "discordConnected": true,
+    "slackConnected": true,
+    "resendConfigured": true
   }
 }

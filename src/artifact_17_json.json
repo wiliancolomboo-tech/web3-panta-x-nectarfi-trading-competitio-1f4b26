@@ -1,14 +1,7 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "include": ["src/**/*"]
-}
+       "status": "UP",
+       "competitionId": 1,
+       "indexedParticipants": 1420,
+       "lastCheckpointSlot": 298410292,
+       "washTradingAnomaliesMitigated": 38
+     }

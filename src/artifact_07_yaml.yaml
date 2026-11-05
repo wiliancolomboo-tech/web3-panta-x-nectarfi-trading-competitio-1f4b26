@@ -1,30 +1,24 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  arena-indexer-oracle:
+  pn-vcp-keeper:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-indexer
+    container_name: panta-nectar-keeper
     restart: unless-stopped
     environment:
-      - SOLANA_RPC_URL=https://api.devnet.solana.com
-      - SOLANA_WS_URL=wss://api.devnet.solana.com
-      - PROGRAM_ID=PNTAnECTAR1111111111111111111111111111111111
-      - COMPETITION_ID=101
-      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
-      - RESEND_API_KEY=${RESEND_API_KEY}
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PNTAnect11111111111111111111111111111111111
+      - KEEPER_KEYPAIR_PATH=/secrets/keeper-keypair.json
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    volumes:
+      - ./secrets:/secrets:ro
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 15s
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
       timeout: 5s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "5"

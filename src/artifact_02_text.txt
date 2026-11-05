@@ -1,13 +1,13 @@
-programs/nectar_panta_arena/
+programs/panta_nectar_arena/
 ├── Cargo.toml
 └── src/
     ├── errors.rs
     ├── instructions/
     │   ├── claim_reward.rs
-    │   ├── finalize.rs
-    │   ├── initialize.rs
-    │   ├── mod.rs
-    │   ├── record_metrics.rs
-    │   └── register.rs
-    ├── lib.rs
-    └── state.rs
+    │   ├── finalize_epoch.rs
+    │   ├── fund_prize_pool.rs
+    │   ├── initialize_competition.rs
+    │   ├── register_participant.rs
+    │   └── update_participant_score.rs
+    ├── state.rs
+    └── lib.rs

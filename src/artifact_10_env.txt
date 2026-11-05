@@ -1,6 +1,5 @@
-SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-PROGRAM_ID=PNTAnect11111111111111111111111111111111111
-COMPETITION_ID=1
-DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-RESEND_API_KEY=re_123456789abcdef
-OPERATOR_NOTIFICATION_EMAIL=ops@nectarfi.trade
+SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+ADMIN_PRIVATE_KEY="[14,241,12,...]"
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/xxx/yyy"
+RESEND_API_KEY="re_test_000000000000000000000000"
+PORT=8080

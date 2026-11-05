@@ -2,4 +2,6 @@
 
 # 5. Comprehensive Test Suite & QA Matrix
 
-Complete TypeScript Anchor integration test suite proving 100% of state conditions, assertions, edge cases, unauthorized calls, and payout distributions.
+This TypeScript integration test covers the end-to-end competition lifecycle using Anchor: initialization, funding the escrow vault, user registration, volume calculation, Merkle tree root commitment, valid reward claim, and strict replay/tampering rejections.
+
+### `tests/panta_nectar_competition.ts`

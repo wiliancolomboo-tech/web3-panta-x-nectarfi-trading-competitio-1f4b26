@@ -1,0 +1,6 @@
+🚨 Trading comps are broken. Wash trading loops, opaque off-chain sheets, and multi-day prize delays kill trader retention.
+
+Introducing the Panta x @NectarFi Trading Arena 🏛️:
+The first cryptographically verifiable, high-frequency competition engine built on @solana.
+
+Here's how it works 🧵👇

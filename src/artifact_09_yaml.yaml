@@ -1,24 +1,23 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  arena-agent:
+  competition-worker:
     build:
-      context: ./client
+      context: .
       dockerfile: Dockerfile
-    container_name: panta-nectar-arena-engine
-    restart: unless-stopped
+    container_name: panta-nectar-engine
+    restart: always
+    environment:
+      - RPC_URL=https://api.mainnet-beta.solana.com
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=engine@nectarfi.xyz
+    volumes:
+      - ./keys/oracle-authority.json:/app/keys/oracle.json:ro
+    command: ["run-worker", "-k", "/app/keys/oracle.json", "-r", "https://api.mainnet-beta.solana.com", "-p", "PANTAnEcTAR11111111111111111111111111111111", "-c", "1"]
     ports:
       - "8080:8080"
-    environment:
-      - NODE_ENV=production
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
-      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - COMPETITION_ID=1001
-      - PANTA_PROGRAM_ID=PntARouter11111111111111111111111111111111
-      - NECTAR_VAULT_PROGRAM_ID=NctrVault11111111111111111111111111111111
     logging:
       driver: "json-file"
       options:

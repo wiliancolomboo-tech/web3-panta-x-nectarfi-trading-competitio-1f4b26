@@ -1,28 +1,29 @@
 version: "3.8"
 
 services:
-  competition-keeper:
+  arena-engine:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: panta_nectar_keeper
-    restart: always
+    container_name: panta-nectar-arena-oracle
+    restart: unless-stopped
     environment:
-      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-      - PROGRAM_ID=PANTAn1ck1111111111111111111111111111111111
-      - KEEPER_KEYPAIR_PATH=/secrets/keeper-keypair.json
-      - DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-      - RESEND_API_KEY=re_123456789abcdef
-      - SENDER_EMAIL=payouts@nectarfi.io
-    volumes:
-      - ./secrets:/secrets:ro
+      - NODE_ENV=production
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      - PROGRAM_ID=PrtAcv9P2QeXnK7d1V8JgJ9W8vC7g5yDk6JbM1N2x3Q
+      - AUTHORITY_SECRET_KEY=${AUTHORITY_SECRET_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - HEALTH_CHECK_PORT=8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "5"
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('./dist/index.js')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3

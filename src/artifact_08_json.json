@@ -1,10 +1,7 @@
 {
   "status": "healthy",
-  "uptime_seconds": 86420,
-  "cluster": "mainnet-beta",
-  "synced_slot": 298412890,
-  "competition_id": "1",
-  "epoch_status": "ACTIVE",
-  "active_participants": 1420,
-  "indexed_trades": 89412
+  "programId": "PArtH8Kx9yVq1u2fX3n4gQ7wL8zM9pB2cT5sV6dE7aR",
+  "connection": "confirmed",
+  "epochSecondsRemaining": 43200,
+  "trackedTraders": 1420
 }

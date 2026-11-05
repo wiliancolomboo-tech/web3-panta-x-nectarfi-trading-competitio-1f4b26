@@ -1,32 +1,25 @@
 version: "3.8"
 
 services:
-  redis-cache:
-    image: redis:7-alpine
-    container_name: nectar-strike-redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-
-  keeper-oracle:
+  competition-daemon:
     build:
-      context: .
+      context: ./daemon
       dockerfile: Dockerfile
-    container_name: nectar-strike-keeper
+    container_name: pvce-settlement-engine
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - SOLANA_RPC_URL=${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
-      - KEEPER_PRIVATE_KEY=${KEEPER_PRIVATE_KEY}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - REDIS_URL=redis://redis-cache:6379
-    depends_on:
-      - redis-cache
-    ports:
-      - "8080:8080"
-
-volumes:
-  redis_data:
+      - SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+      - PROGRAM_ID=PntNctR111111111111111111111111111111111111
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your_webhook_id/your_webhook_token
+      - RESEND_API_KEY=re_test_000000000000000000000000
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'console.log(\"Health OK\")'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

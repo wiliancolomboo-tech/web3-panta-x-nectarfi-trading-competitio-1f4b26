@@ -1,0 +1,5 @@
+🚨 Trading competitions on Solana just evolved.
+
+In partnership with @PantaDEX & @NectarFi, we've built the Verifiable Competition Engine (PVCE): zero wash-trading, sub-second on-chain Merkle claims, and Nectar vault yield multipliers.
+
+Here is how we solved tournament manipulation forever 🧵👇

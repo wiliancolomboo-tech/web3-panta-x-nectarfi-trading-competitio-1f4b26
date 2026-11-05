@@ -1,7 +1,8 @@
 SOLANA_RPC_URL=https://api.devnet.solana.com
-PROGRAM_ID=PNTAnect11111111111111111111111111111111111
-KEYPAIR_PATH=/app/credentials/authority-keypair.json
+COMPETITION_PROGRAM_ID=PNTAnect11111111111111111111111111111111111
 COMPETITION_ID=101
-RESEND_API_KEY=re_live_94380f2837fbf8238f923
-SLACK_DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-PORT=8080
+ORACLE_SECRET_KEY=[14,244,11,...] # Oracle wallet private key JSON array
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/12345/abcdef
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/XXXX
+RESEND_API_KEY=re_test_000000000000000000000000
+SENDER_EMAIL=arena@nectarfi.com

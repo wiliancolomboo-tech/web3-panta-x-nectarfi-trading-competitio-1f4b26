@@ -1,7 +1,7 @@
 {
-  "status": "healthy",
-  "programId": "PNTAnect11111111111111111111111111111111111",
-  "syncedSlot": 268921841,
-  "activeCompetitions": 1,
-  "uptimeSeconds": 14920
-}
+    "status": "HEALTHY",
+    "currentSlot": 268921102,
+    "oraclePubkey": "Orac1e...5x9",
+    "activeCompetitions": 2,
+    "lastLogProcessedMs": 340
+  }

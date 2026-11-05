@@ -1,14 +1,13 @@
-# Network and Node Settings
+# Solana Network Configuration
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-SOLANA_WSS_URL=wss://api.mainnet-beta.solana.com
-PROGRAM_ID=PNTAnect11111111111111111111111111111111111
-KEEPER_KEYPAIR_PATH=/secrets/keeper-keypair.json
+SOLANA_WS_URL=wss://api.mainnet-beta.solana.com
+OPERATOR_PRIVATE_KEY=[1,2,3...] # Array or base58 encoded private key for crank keeper
 
-# Enterprise Communications Gateway
-RESEND_API_KEY=re_live_secret_key_here
-DISCORD_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
-SLACK_WEBHOOK_URL=https://api.example.com/webhooks/alerts/placeholder
+# Enterprise Alerting & Direct Dispatch
+RESEND_API_KEY=re_test_000000000000000000000000
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxx/yyyy
 
-# Operational Settings
+# Tournament Parameters
+PROGRAM_ID=PNvte11111111111111111111111111111111111111
+COMPETITION_ID=101
 PORT=8080
-LOG_LEVEL=info

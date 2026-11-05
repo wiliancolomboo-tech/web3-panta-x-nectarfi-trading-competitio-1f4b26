@@ -1,10 +1,14 @@
-┌──────────────────────────────────────────────┐
-                                      │       Panta x NectarFi Arena Protocol        │
-                                      └──────────────────────┬───────────────────────┘
-                                                             │
-                  ┌──────────────────────────────────────────┼──────────────────────────────────────────┐
-                  ▼                                          ▼                                          ▼
-     [Cryptographic Attestation]                 [Non-Linear Scoring Engine]              [Autonomous Escrow Settlement]
- Ed25519-verified execution receipts from    Score = Volume^0.85 * (1 + PnL_BPS/10k)    SPL Token escrow release deterministically
- NectarFi Vaults & Panta Aggregator routed   penalizing wash churn while rewarding      locked to verifiable rank claims at epoch
- via strict PDA-verified Oracle crank.       genuine capital-efficiency & risk PnL.     expiry without multisig intervention.
+Volume & PnL Generated
+  [Panta DEX]  &  [NectarFi Vaults]
+        │                │
+        └───────┬────────┘
+                ▼
+   [PN-VCP Solana Anchor Engine]  <--- Verifies & Accrues PDAs
+                ▲
+                │ Merkle Root Checkpoints & Epoch Finality
+                │
+     [PN-VCP Keeper Daemon]
+        │                │
+        ▼                ▼
+[Discord / Slack]  [Resend Email]
+ (Leaderboard)      (Prize Claim)

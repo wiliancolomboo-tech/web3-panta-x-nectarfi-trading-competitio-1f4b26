@@ -1,0 +1,5 @@
+2/ Fusing @PantaTrade's ultra-low latency execution with @NectarFi's high-yield collateral margin.
+
+⚡ Dynamic Volume-Weighted PnL: PnL * ln(1 + Vol) - (κ * Liqs)
+⚡ Anti-Sybil & Anti-Wash guarantees baked into state
+⚡ Trustless payout settlement via Keccak-256 Merkle proofs on Anchor

@@ -1,14 +1,22 @@
-import http from "http";
+import express from "express";
 
-export function initHealthcheckServer(port: number = 8080, getStatus: () => object) {
-  const server = http.createServer((req, res) => {
-    if (req.url === "/health" && req.method === "GET") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "HEALTHY", timestamp: Date.now(), ...getStatus() }));
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-  server.listen(port, () => console.log(`[Healthcheck] Listening on port ${port}`));
-}
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+app.get("/healthz", async (req, res) => {
+  try {
+    const slot = await connection.getSlot("processed");
+    res.status(200).json({
+      status: "healthy",
+      svm_slot: slot,
+      uptime_seconds: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(503).json({ status: "unhealthy", reason: error.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Telemetry endpoint active on :${PORT}/healthz`);
+});

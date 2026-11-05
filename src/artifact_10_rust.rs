@@ -1,90 +1,91 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use crate::errors::CompetitionError;
-use crate::state::{Competition, TraderRecord};
+use crate::state::*;
 
 #[derive(Accounts)]
-pub struct RegisterTrader<'info> {
-    #[account(mut)]
-    pub trader: Signer<'info>,
+#[instruction(competition_id: u64)]
+pub struct UpdateMetrics<'info> {
+    #[account(
+        constraint = oracle_authority.key() == competition.oracle_authority @ CompetitionError::Unauthorized
+    )]
+    pub oracle_authority: Signer<'info>,
 
     #[account(
         mut,
-        seeds = [b"competition", competition.competition_id.to_le_bytes().as_ref()],
-        bump = competition.bump
+        seeds = [COMPETITION_SEED, competition_id.to_le_bytes().as_ref()],
+        bump = competition.bump,
+        constraint = competition.status == CompetitionStatus::Active @ CompetitionError::CompetitionEnded
     )]
     pub competition: Account<'info, Competition>,
 
     #[account(
-        init,
-        payer = trader,
-        space = TraderRecord::LEN,
+        mut,
         seeds = [
-            b"trader_record",
-            competition.key().as_ref(),
-            trader.key().as_ref()
+            PARTICIPANT_SEED,
+            competition_id.to_le_bytes().as_ref(),
+            participant.trader.as_ref()
         ],
-        bump
+        bump = participant.bump,
     )]
-    pub trader_record: Account<'info, TraderRecord>,
-
-    #[account(
-        mut,
-        address = competition.reward_vault
-    )]
-    pub reward_vault: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = trader_token_account.mint == competition.reward_mint
-    )]
-    pub trader_token_account: Account<'info, TokenAccount>,
-
-    pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub participant: Account<'info, Participant>,
 }
 
-pub fn handler(ctx: Context<RegisterTrader>) -> Result<()> {
+pub fn handler(
+    ctx: Context<UpdateMetrics>,
+    _competition_id: u64,
+    incremental_volume: u64,
+    incremental_pnl: i64,
+    nectar_lp_points: u64,
+    is_wash_trade: bool,
+) -> Result<()> {
     let clock = Clock::get()?;
-    let comp = &ctx.accounts.competition;
+    let comp = &mut ctx.accounts.competition;
 
-    require!(
-        clock.unix_timestamp < comp.end_timestamp,
-        CompetitionError::CompetitionEnded
-    );
+    require!(clock.unix_timestamp <= comp.end_ts, CompetitionError::CompetitionEnded);
 
-    if comp.entry_fee > 0 {
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.trader_token_account.to_account_info(),
-                    to: ctx.accounts.reward_vault.to_account_info(),
-                    authority: ctx.accounts.trader.to_account_info(),
-                },
-            ),
-            comp.entry_fee,
-        )?;
+    let participant = &mut ctx.accounts.participant;
+
+    if is_wash_trade {
+        participant.rejected_wash_volume = participant
+            .rejected_wash_volume
+            .checked_add(incremental_volume)
+            .ok_or(CompetitionError::MathOverflow)?;
+        return Ok(());
     }
 
-    let trader_record = &mut ctx.accounts.trader_record;
-    trader_record.competition = comp.key();
-    trader_record.trader = ctx.accounts.trader.key();
-    trader_record.registered_timestamp = clock.unix_timestamp;
-    trader_record.cumulative_volume = 0;
-    trader_record.cumulative_pnl = 0;
-    trader_record.total_trades = 0;
-    trader_record.has_claimed = false;
-    trader_record.bump = ctx.bumps.trader_record;
+    participant.qualifying_volume = participant
+        .qualifying_volume
+        .checked_add(incremental_volume)
+        .ok_or(CompetitionError::MathOverflow)?;
 
-    let comp_mut = &mut ctx.accounts.competition;
-    comp_mut.total_traders = comp_mut.total_traders.checked_add(1).unwrap();
-    if comp.entry_fee > 0 {
-        comp_mut.total_reward_pool = comp_mut
-            .total_reward_pool
-            .checked_add(comp.entry_fee)
-            .unwrap();
-    }
+    participant.realized_pnl = participant
+        .realized_pnl
+        .checked_add(incremental_pnl)
+        .ok_or(CompetitionError::MathOverflow)?;
+
+    participant.nectar_vault_points = participant
+        .nectar_vault_points
+        .checked_add(nectar_lp_points)
+        .ok_or(CompetitionError::MathOverflow)?;
+
+    comp.total_qualifying_volume = comp
+        .total_qualifying_volume
+        .checked_add(incremental_volume as u128)
+        .ok_or(CompetitionError::MathOverflow)?;
+
+    // Weighted Score Formula: (PnL normalized) + (0.01 * volume) + (5 * nectar LP points)
+    let pnl_component: i128 = participant.realized_pnl as i128;
+    let vol_component: u128 = (participant.qualifying_volume / 100) as u128;
+    let nectar_component: u128 = (participant.nectar_vault_points as u128)
+        .checked_mul(5)
+        .unwrap_or(0);
+
+    let calculated_score = (pnl_component.max(0) as u128)
+        .checked_add(vol_component)
+        .and_then(|v| v.checked_add(nectar_component))
+        .unwrap_or(0);
+
+    participant.raw_score = calculated_score;
 
     Ok(())
 }

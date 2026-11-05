@@ -1,10 +1,15 @@
 # 1. Build and verify Anchor smart contract
 anchor build
-solana-keygen new -o target/deploy/panta_nectar_competition-keypair.json --no-bip39-passphrase --force
-solana program deploy --program-id target/deploy/panta_nectar_competition-keypair.json target/deploy/panta_nectar_competition.so
+anchor test
 
-# 2. Run local integration tests
-anchor test --skip-local-validator
+# 2. Deploy to Solana Devnet / Mainnet-Beta
+solana config set --url devnet
+anchor deploy --program-name panta_nectar_arena --provider.cluster devnet
 
-# 3. Configure environment variables for Keeper daemon
+# 3. Launch automated backend worker & webhooks
 cp .env.example .env
+# Edit .env with your OPERATOR_PRIVATE_KEY and DISCORD_WEBHOOK_URL
+docker-compose up -d --build
+
+# 4. View real-time indexed logs
+docker-compose logs -f competition-worker
